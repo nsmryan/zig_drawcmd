@@ -1,7 +1,13 @@
 const std = @import("std");
+const ArrayList = std.ArrayList;
+const Allocator = std.mem.Allocator;
 
 const sdl2 = @import("sdl2.zig");
 const area = @import("area.zig");
+const Rect = @import("utils.zig").Rect;
+
+pub const FONT_WIDTH: i32 = 16;
+pub const FONT_HEIGHT: i32 = 16;
 
 pub const SpriteIndex = u32;
 pub const SpriteKey = u32;
@@ -58,10 +64,7 @@ pub const SpriteSheet = struct {
         };
     }
 
-    pub fn single(name: [64]u8, texture: Texture) SpriteSheet {
-        const tex_info = texture.query();
-        const width = @intCast(usize, tex_info.width);
-        const height = @intCast(usize, tex_info.height);
+    pub fn single(name: [64]u8, width: usize, height: usize) SpriteSheet {
         const num_sprites = 1;
         const rows = 1;
         const cols = 1;
@@ -94,21 +97,21 @@ pub const SpriteSheet = struct {
     }
 
     // Get the source rectangle for a particular sprite given by its index into the sprite sheet.
-    pub fn spriteSrc(self: *SpriteSheet, index: u32) sdl2.Rect {
+    pub fn spriteSrc(self: *SpriteSheet, origIndex: u32) Rect {
         const cell_dims = self.numCells();
-        const index = @intCast(usize, index);
+        const index = @intCast(usize, origIndex);
         const sprite_x = index % cell_dims.width;
         const sprite_y = index / cell_dims.width;
 
         const sprite_dims = self.sprite_dims();
-        const sprite_width = dims.width;
-        const sprite_height = dims.height;
+        //const sprite_width = cell_dims.width;
+        //const sprite_height = cell_dims.height;
 
         const x = @intCast(i32, self.x_offset) + @intCast(i32, sprite_x * sprite_dims.width);
         const y = @intCast(i32, self.y_offset) + @intCast(i32, sprite_y * sprite_dims.height);
         const w = @intCast(u32, sprite_dims.width);
         const h = @intCast(u32, sprite_dims.height);
-        const src = sdl2.Rect{ .x = x, .y = y, .w = w, .h = h };
+        const src = Rect{ .x = x, .y = y, .w = w, .h = h };
 
         return src;
     }
@@ -131,7 +134,7 @@ pub fn parseAtlasFile(atlas_file: []u8, allocator: Allocator) !ArrayList(SpriteS
 
     var buf: [1024]u8 = undefined;
     while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
-        const parts = std.mem.split(u8, buf, ' ');
+        const parts = std.mem.split(u8, line, ' ');
 
         const spriteName = parts.next() orelse return ParseAtlasError.MissingField;
         if (spriteName.len > @sizeOf(SpriteSheet.name)) {
@@ -139,7 +142,7 @@ pub fn parseAtlasFile(atlas_file: []u8, allocator: Allocator) !ArrayList(SpriteS
             return ParseAtlasError.SpriteNameTooLong;
         }
 
-        var name: [64]u8;
+        var name: [64]u8 = [_]u8{0} * 64;
         std.mem.copy(u8, name, spriteName);
         const x = try std.fmt.parseInt(u32, parts.next orelse return ParseAtlasError.MissingField);
         const y = try std.fmt.parseInt(u32, parts.next orelse return ParseAtlasError.MissingField);
@@ -169,7 +172,7 @@ pub fn lookupSpritekey(sprites: *ArrayList(SpriteSheet), name: []u8) !SpriteKey 
     for (sprites.iter()) |sprite_sheet, index| {
         // NOTE this assumes zero padding. An interned string is a better solution.
         if (std.mem.eql(u8, sprite_sheet.name[0..], name)) {
-            return key;
+            return index;
         }
     }
 

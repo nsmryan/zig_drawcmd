@@ -4,6 +4,12 @@ const fs = @import("std").fs;
 
 const sdl2 = @import("sdl2.zig");
 
+const drawcmd = @import("drawcmd.zig");
+const panel = @import("panel.zig");
+const area = @import("area.zig");
+const utils = @import("utils.zig");
+const sprite = @import("sprite.zig");
+
 const window_width: c_int = 800;
 const window_height: c_int = 600;
 
@@ -45,7 +51,7 @@ const State = struct {
         return game;
     }
 
-    fn render_text(self: *State, text: []const u8, color: sdl2.SDL_Color) !*sdl2.SDL_Texture {
+    fn renderText(self: *State, text: []const u8, color: sdl2.SDL_Color) !*sdl2.SDL_Texture {
         const c_text = @ptrCast([*c]const u8, text);
         const text_surface = sdl2.TTF_RenderText_Solid(self.font, c_text, color) orelse {
             sdl2.SDL_Log("Unable to create text from font: %s", sdl2.SDL_GetError());
@@ -67,6 +73,8 @@ const State = struct {
     }
 
     fn render(self: *State) !void {
+        var textTexture = try self.renderText("Hello, SDL2", makeColor(128, 128, 128, 128));
+        _ = sdl2.SDL_RenderCopyEx(self.renderer, textTexture, null, &sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 50 }, 0.0, null, 0);
         sdl2.SDL_RenderPresent(self.renderer);
         _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 0, 0, 0, 0);
         _ = sdl2.SDL_RenderClear(self.renderer);
@@ -144,6 +152,10 @@ const State = struct {
         return quit;
     }
 };
+
+pub fn makeColor(r: u8, g: u8, b: u8, a: u8) sdl2.SDL_Color {
+    return sdl2.SDL_Color{ .r = r, .g = g, .b = b, .a = a };
+}
 
 pub fn main() !void {
     var state = try State.create();
