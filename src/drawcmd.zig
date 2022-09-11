@@ -53,7 +53,7 @@ pub const DrawCmd = union(enum) {
     }
 
     pub fn sprite(spr: Sprite, color: Color, position: Pos) DrawCmd {
-        return DrawCmd{ .drawSprite = DrawSprite{ .sprite = spr, .color = color, .pos = position } };
+        return DrawCmd{ .sprite = DrawSprite{ .sprite = spr, .color = color, .pos = position } };
     }
 
     pub fn spriteScaled(spr: Sprite, scale: f32, dir: Direction, color: Color, position: Pos) DrawCmd {

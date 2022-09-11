@@ -137,14 +137,14 @@ pub fn parseAtlasFile(atlas_file: []const u8, allocator: Allocator) !ArrayList(S
     while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
         var parts = std.mem.split(u8, line, " ");
 
-        const spriteName = parts.next() orelse return ParseAtlasError.MissingField;
-        if (spriteName.len > MAX_NAME_SIZE) {
+        const sprite_name = parts.next() orelse return ParseAtlasError.MissingField;
+        if (sprite_name.len > MAX_NAME_SIZE) {
             // NOTE(log) log length and name.
             return ParseAtlasError.SpriteNameTooLong;
         }
 
         var name: [64]u8 = [_]u8{0} ** 64;
-        std.mem.copy(u8, name[0..], spriteName);
+        std.mem.copy(u8, name[0..], sprite_name[0..]);
         const x = try std.fmt.parseInt(u32, parts.next() orelse return ParseAtlasError.MissingField, 10);
         const y = try std.fmt.parseInt(u32, parts.next() orelse return ParseAtlasError.MissingField, 10);
         const width = try std.fmt.parseInt(usize, parts.next() orelse return ParseAtlasError.MissingField, 10);
@@ -169,11 +169,15 @@ const SpriteLookupError = error{
     SpriteNameNotFound,
 };
 
-pub fn lookupSpritekey(sprites: *ArrayList(SpriteSheet), name: []u8) !SpriteKey {
-    for (sprites.iter()) |sprite_sheet, index| {
-        // NOTE this assumes zero padding. An interned string is a better solution.
-        if (std.mem.eql(u8, sprite_sheet.name[0..], name)) {
-            return index;
+pub fn lookupSpritekey(sprites: *ArrayList(SpriteSheet), name: []const u8) !SpriteKey {
+    for (sprites.items) |sheet, index| {
+        if (name.len > sheet.name.len) {
+            break;
+        }
+
+        // NOTE An interned string is a better solution.
+        if (std.mem.eql(u8, sheet.name[0..name.len], name)) {
+            return @intCast(u32, index);
         }
     }
 

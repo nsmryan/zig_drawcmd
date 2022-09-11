@@ -5,6 +5,9 @@ const fs = std.fs;
 const Allocator = mem.Allocator;
 
 const sdl2 = @import("sdl2.zig");
+const Texture = sdl2.SDL_Texture;
+const Renderer = sdl2.SDL_Renderer;
+const Font = sdl2.TTF_Font;
 
 const drawcmd = @import("drawcmd.zig");
 const DrawCmd = drawcmd.DrawCmd;
@@ -27,10 +30,10 @@ const ASCII_END: usize = 127;
 
 const State = struct {
     window: *sdl2.SDL_Window,
-    renderer: *sdl2.SDL_Renderer,
-    font: *sdl2.TTF_Font,
-    font_texture: *sdl2.SDL_Texture,
-    screen_texture: *sdl2.SDL_Texture,
+    renderer: *Renderer,
+    font: *Font,
+    font_texture: *Texture,
+    screen_texture: *Texture,
     sprites: Sprites,
     panel: Panel,
 
@@ -92,7 +95,7 @@ const State = struct {
         const font_texture = try renderAsciiCharacters(renderer, font);
 
         const num_pixels = Dims.init(window_width, window_height);
-        const cell_dims = Dims.init(80, 60);
+        const cell_dims = Dims.init(40, 30);
         const screen_panel = Panel.init(num_pixels, cell_dims);
 
         var game: State = State{
@@ -107,7 +110,7 @@ const State = struct {
         return game;
     }
 
-    fn renderText(self: *State, text: []const u8, color: sdl2.SDL_Color) !*sdl2.SDL_Texture {
+    fn renderText(self: *State, text: []const u8, color: sdl2.SDL_Color) !*Texture {
         const c_text = @ptrCast([*c]const u8, text);
         const text_surface = sdl2.TTF_RenderText_Blended(self.font, c_text, color) orelse {
             sdl2.SDL_Log("Unable to create text from font: %s", sdl2.SDL_GetError());
@@ -135,8 +138,13 @@ const State = struct {
         _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 0, 0, 0, sdl2.SDL_ALPHA_OPAQUE);
         _ = sdl2.SDL_RenderClear(self.renderer);
 
-        const draw_cmd = DrawCmd.fill(Pos.init(40, 40), Color.init(255, 0, 0, 255));
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &draw_cmd);
+        const fill_cmd = DrawCmd.fill(Pos.init(21, 20), Color.init(255, 0, 0, 255));
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &fill_cmd);
+
+        const sprite_key = try sprite.lookupSpritekey(&self.sprites.sheets, "player_standing_right"[0..]);
+        const spr = sprite.Sprite.init(0, sprite_key);
+        const sprite_cmd = DrawCmd.sprite(spr, Color.init(255, 255, 255, 255), Pos.init(20, 20));
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &sprite_cmd);
 
         //var textTexture = try self.renderText("Hello, SDL2", makeColor(128, 128, 128, 128));
         //_ = sdl2.SDL_RenderCopyEx(self.renderer, textTexture, null, &sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 50 }, 0.0, null, 0);
@@ -217,7 +225,7 @@ const State = struct {
     }
 };
 
-pub fn renderAsciiCharacters(renderer: *sdl2.SDL_Renderer, font: *sdl2.TTF_Font) !*sdl2.SDL_Texture {
+pub fn renderAsciiCharacters(renderer: *Renderer, font: *Font) !*Texture {
     sdl2.TTF_SetFontStyle(font, sdl2.TTF_STYLE_BOLD);
 
     var chrs: [256]u8 = undefined;
