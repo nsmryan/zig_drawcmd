@@ -8,6 +8,7 @@ const Rect = @import("utils.zig").Rect;
 
 pub const FONT_WIDTH: i32 = 16;
 pub const FONT_HEIGHT: i32 = 16;
+pub const MAX_NAME_SIZE: usize = 64;
 
 pub const SpriteIndex = u32;
 pub const SpriteKey = u32;
@@ -34,7 +35,7 @@ pub const Sprite = struct {
 
 // NOTE consider an interned string for the name instead of a fixed size buffer
 pub const SpriteSheet = struct {
-    name: [64]u8,
+    name: [MAX_NAME_SIZE]u8,
     num_sprites: usize,
     rows: usize,
     cols: usize,
@@ -122,7 +123,7 @@ const ParseAtlasError = error{
     MissingField,
 };
 
-pub fn parseAtlasFile(atlas_file: []u8, allocator: Allocator) !ArrayList(SpriteSheet) {
+pub fn parseAtlasFile(atlas_file: []const u8, allocator: Allocator) !ArrayList(SpriteSheet) {
     var file = try std.fs.cwd().openFile(atlas_file, .{});
     defer file.close();
 
@@ -134,31 +135,31 @@ pub fn parseAtlasFile(atlas_file: []u8, allocator: Allocator) !ArrayList(SpriteS
 
     var buf: [1024]u8 = undefined;
     while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
-        const parts = std.mem.split(u8, line, ' ');
+        var parts = std.mem.split(u8, line, " ");
 
         const spriteName = parts.next() orelse return ParseAtlasError.MissingField;
-        if (spriteName.len > @sizeOf(SpriteSheet.name)) {
+        if (spriteName.len > MAX_NAME_SIZE) {
             // NOTE(log) log length and name.
             return ParseAtlasError.SpriteNameTooLong;
         }
 
-        var name: [64]u8 = [_]u8{0} * 64;
-        std.mem.copy(u8, name, spriteName);
-        const x = try std.fmt.parseInt(u32, parts.next orelse return ParseAtlasError.MissingField);
-        const y = try std.fmt.parseInt(u32, parts.next orelse return ParseAtlasError.MissingField);
-        const width = try std.fmt.parseInt(usize, parts.next orelse return ParseAtlasError.MissingField);
-        const height = try std.fmt.parseInt(usize, parts.next orelse return ParseAtlasError.MissingField);
+        var name: [64]u8 = [_]u8{0} ** 64;
+        std.mem.copy(u8, name[0..], spriteName);
+        const x = try std.fmt.parseInt(u32, parts.next() orelse return ParseAtlasError.MissingField, 10);
+        const y = try std.fmt.parseInt(u32, parts.next() orelse return ParseAtlasError.MissingField, 10);
+        const width = try std.fmt.parseInt(usize, parts.next() orelse return ParseAtlasError.MissingField, 10);
+        const height = try std.fmt.parseInt(usize, parts.next() orelse return ParseAtlasError.MissingField, 10);
 
-        var sheet = SpriteSheet.with_offset(name, x, y, width, height);
+        var sheet = SpriteSheet.withOffset(name, x, y, width, height);
 
         // Button sprites are handled specially - they are always a single large sprite.
-        if (std.mem.startsWith(u8, name, "Button")) {
+        if (std.mem.startsWith(u8, name[0..], "Button")) {
             sheet.rows = 1;
             sheet.cols = 1;
             sheet.num_sprites = 1;
         }
 
-        sheets.append(sheet);
+        try sheets.append(sheet);
     }
 
     return sheets;

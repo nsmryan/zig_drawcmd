@@ -1,6 +1,10 @@
+const std = @import("std");
+const ArrayList = std.ArrayList;
+
 const sdl2 = @import("sdl2.zig");
 const Texture = sdl2.SDL_Texture;
 const Renderer = sdl2.SDL_Renderer;
+
 const drawcmd = @import("drawcmd.zig");
 const DrawCmd = drawcmd.DrawCmd;
 const DrawFill = drawcmd.DrawFill;
@@ -10,6 +14,7 @@ const Rect = utils.Rect;
 const Pos = utils.Pos;
 const sprite = @import("sprite.zig");
 const Sprite = sprite.Sprite;
+const SpriteSheet = sprite.SpriteSheet;
 const pnl = @import("panel.zig");
 const Panel = pnl.Panel;
 
@@ -17,16 +22,25 @@ pub const Canvas = struct {
     panel: *Panel,
     renderer: *Renderer,
     target: *Texture,
-    sprite_texture: *Texture,
+    sprites: *Sprites,
     font_texture: *Texture,
 
-    pub fn init(panel: *Panel, renderer: *Renderer, target: *Texture, sprite_texture: *Texture, font_texture: *Texture) Canvas {
-        return Canvas{ .panel = panel, .renderer = renderer, .target = target, .sprite_texture = sprite_texture, .font_texture = font_texture };
+    pub fn init(panel: *Panel, renderer: *Renderer, target: *Texture, sprites: *Sprites, font_texture: *Texture) Canvas {
+        return Canvas{ .panel = panel, .renderer = renderer, .target = target, .sprites = sprites, .font_texture = font_texture };
     }
 };
 
-pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, sprite_texture: *Texture, font_texture: *Texture, draw_cmd: *const DrawCmd) void {
-    var canvas = Canvas.init(panel, renderer, texture, sprite_texture, font_texture);
+pub const Sprites = struct {
+    texture: *Texture,
+    sheets: ArrayList(SpriteSheet),
+
+    pub fn init(texture: *Texture, sheets: ArrayList(SpriteSheet)) Sprites {
+        return Sprites{ .texture = texture, .sheets = sheets };
+    }
+};
+
+pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, sprites: *Sprites, font_texture: *Texture, draw_cmd: *const DrawCmd) void {
+    var canvas = Canvas.init(panel, renderer, texture, sprites, font_texture);
     switch (draw_cmd.*) {
         .sprite => |params| processSpriteCmd(canvas, params),
 
@@ -61,16 +75,17 @@ pub fn processFillCmd(canvas: Canvas, params: DrawFill) void {
 }
 
 pub fn processSpriteCmd(canvas: Canvas, params: DrawSprite) void {
-    const sprite_sheet = &canvas.sprites[sprite.key];
+    const sprite_sheet = &canvas.sprites.sheets.items[params.sprite.key];
     const cell_dims = canvas.panel.cellDims();
 
-    const pos = Pos.init(@intCast(i32, params.pos.x * cell_dims.width), @intCast(i32, params.pos.y * cell_dims.height));
+    const pos = Pos.init(params.pos.x * @intCast(i32, cell_dims.width), params.pos.y * @intCast(i32, cell_dims.height));
 
     const dst_rect = Rect.init(@intCast(i32, pos.x), @intCast(i32, pos.y), @intCast(u32, cell_dims.width), @intCast(u32, cell_dims.height));
 
-    sdl2.SDL_SetTextureBlendMode(canvas.texture, sdl2.SDL2_BlendMode.Blend);
+    // NOTE(error) ignoring error return.
+    _ = sdl2.SDL_SetTextureBlendMode(canvas.target, sdl2.SDL_BLENDMODE_BLEND);
 
-    const src_rect = sprite_sheet.sprite_src(sprite.index);
+    const src_rect = sprite_sheet.spriteSrc(params.sprite.index);
     canvas.sprite_texture.set_color_mod(params.color.r, params.color.g, params.color.b);
     canvas.sprite_texture.set_alpha_mod(params.color.a);
 

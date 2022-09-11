@@ -1,6 +1,8 @@
-const assert = @import("std").debug.assert;
-const mem = @import("std").mem;
-const fs = @import("std").fs;
+const std = @import("std");
+const assert = std.debug.assert;
+const mem = std.mem;
+const fs = std.fs;
+const Allocator = mem.Allocator;
 
 const sdl2 = @import("sdl2.zig");
 
@@ -11,7 +13,9 @@ const area = @import("area.zig");
 const Dims = area.Dims;
 const utils = @import("utils.zig");
 const sprite = @import("sprite.zig");
+const SpriteSheet = sprite.SpriteSheet;
 const drawing = @import("drawing.zig");
+const Sprites = drawing.Sprites;
 const Pos = utils.Pos;
 const Color = utils.Color;
 
@@ -26,10 +30,10 @@ const State = struct {
     font: *sdl2.TTF_Font,
     font_texture: *sdl2.SDL_Texture,
     screen_texture: *sdl2.SDL_Texture,
-    sprite_texture: *sdl2.SDL_Texture,
+    sprites: Sprites,
     panel: Panel,
 
-    fn create() !State {
+    fn create(allocator: Allocator) !State {
         if (sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO) != 0) {
             sdl2.SDL_Log("Unable to initialize SDL: %s", sdl2.SDL_GetError());
             return error.SDLInitializationFailed;
@@ -74,6 +78,9 @@ const State = struct {
             return error.SDLInitializationFailed;
         };
 
+        var sheets = try sprite.parseAtlasFile("spriteAtlas.txt"[0..], allocator);
+        var sprites = Sprites.init(sprite_texture, sheets);
+
         const font = sdl2.TTF_OpenFont("data/Monoid.ttf", 20) orelse {
             sdl2.SDL_Log("Unable to create font from tff: %s", sdl2.SDL_GetError());
             return error.SDLInitializationFailed;
@@ -85,7 +92,15 @@ const State = struct {
         const cell_dims = Dims.init(80, 60);
         const screen_panel = Panel.init(num_pixels, cell_dims);
 
-        var game: State = State{ .window = window, .renderer = renderer, .font = font, .font_texture = font_texture, .panel = screen_panel, .sprite_texture = sprite_texture, .screen_texture = screen_texture };
+        var game: State = State{
+            .window = window,
+            .renderer = renderer,
+            .font = font,
+            .font_texture = font_texture,
+            .panel = screen_panel,
+            .sprites = sprites,
+            .screen_texture = screen_texture,
+        };
         return game;
     }
 
@@ -115,7 +130,7 @@ const State = struct {
         _ = sdl2.SDL_RenderCopyEx(self.renderer, textTexture, null, &sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 50 }, 0.0, null, 0);
 
         const draw_cmd = drawcmd.DrawCmd{ .fill = drawcmd.DrawFill{ .pos = Pos.init(40, 40), .color = Color.init(128, 128, 128, 128) } };
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, self.sprite_texture, self.font_texture, &draw_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &draw_cmd);
 
         sdl2.SDL_RenderPresent(self.renderer);
         _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 0, 0, 0, 0);
@@ -221,7 +236,10 @@ pub fn makeColor(r: u8, g: u8, b: u8, a: u8) sdl2.SDL_Color {
 }
 
 pub fn main() !void {
-    var state = try State.create();
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    var state = try State.create(arena.allocator());
     defer state.destroy();
 
     var quit = false;
