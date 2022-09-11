@@ -85,7 +85,7 @@ pub const SpriteSheet = struct {
     }
 
     pub fn numCells(self: *SpriteSheet) area.Dims {
-        return .{ self.cols, self.rows };
+        return area.Dims{ .width = self.cols, .height = self.rows };
     }
 
     pub fn numPixels(self: *SpriteSheet) area.Dims {
@@ -104,7 +104,7 @@ pub const SpriteSheet = struct {
         const sprite_x = index % cell_dims.width;
         const sprite_y = index / cell_dims.width;
 
-        const sprite_dims = self.sprite_dims();
+        const sprite_dims = self.spriteDims();
         //const sprite_width = cell_dims.width;
         //const sprite_height = cell_dims.height;
 

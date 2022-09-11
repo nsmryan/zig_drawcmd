@@ -86,10 +86,21 @@ pub fn processSpriteCmd(canvas: Canvas, params: DrawSprite) void {
     _ = sdl2.SDL_SetTextureBlendMode(canvas.target, sdl2.SDL_BLENDMODE_BLEND);
 
     const src_rect = sprite_sheet.spriteSrc(params.sprite.index);
-    sdl2SDL_SetTextureColorMod(canvas.sprite_texture, params.color.r, params.color.g, params.color.b);
-    sdl2SDL_SetTextureAlphaMode(canvas.sprite_texture, params.color.a);
+    // NOTE(error) ignoring error return.
+    _ = sdl2.SDL_SetTextureColorMod(canvas.sprites.texture, params.color.r, params.color.g, params.color.b);
+    // NOTE(error) ignoring error return.
+    _ = sdl2.SDL_SetTextureAlphaMod(canvas.sprites.texture, params.color.a);
 
-    sdl2.SDL_RenderCopyEx(canvas.renderer, canvas.sprite_texture, &src_rect, &dst_rect, sprite.rotation, null, flipFlags(params.sprite));
+    // NOTE(error) ignoring error return.
+    _ = sdl2.SDL_RenderCopyEx(
+        canvas.renderer,
+        canvas.sprites.texture,
+        &Sdl2Rect(src_rect),
+        &Sdl2Rect(dst_rect),
+        params.sprite.rotation,
+        null,
+        flipFlags(&params.sprite),
+    );
 }
 
 //    const cell_dims = panel.cellDims();
@@ -164,8 +175,8 @@ pub fn processSpriteCmd(canvas: Canvas, params: DrawSprite) void {
 //                   false,
 //                   false).unwrap();
 
-pub fn flipFlags(spr: *const Sprite) sdl2.SDL_RenderFlip {
-    var flags: sdl2.SDL_RenderFlip = 0;
+pub fn flipFlags(spr: *const Sprite) sdl2.SDL_RendererFlip {
+    var flags: sdl2.SDL_RendererFlip = 0;
     if (spr.flip_horiz) {
         flags |= sdl2.SDL_FLIP_HORIZONTAL;
     }

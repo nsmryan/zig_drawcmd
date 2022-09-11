@@ -78,7 +78,7 @@ const State = struct {
             return error.SDLInitializationFailed;
         };
 
-        var sheets = try sprite.parseAtlasFile("spriteAtlas.txt"[0..], allocator);
+        var sheets = try sprite.parseAtlasFile("data/spriteAtlas.txt"[0..], allocator);
         var sprites = Sprites.init(sprite_texture, sheets);
 
         const font = sdl2.TTF_OpenFont("data/Monoid.ttf", 20) orelse {
