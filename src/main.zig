@@ -141,6 +141,9 @@ const State = struct {
         const fill_cmd = DrawCmd.fill(Pos.init(21, 20), Color.init(255, 0, 0, 255));
         drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &fill_cmd);
 
+        const rect_cmd = DrawCmd.rect(Pos.init(20, 20), 2, 2, 0.2, false, Color.init(0, 255, 0, 255));
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &rect_cmd);
+
         const sprite_key = try sprite.lookupSpritekey(&self.sprites.sheets, "player_standing_right"[0..]);
         const spr = sprite.Sprite.init(0, sprite_key);
         const sprite_cmd = DrawCmd.sprite(spr, Color.init(255, 255, 255, 255), Pos.init(20, 20));

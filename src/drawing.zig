@@ -1,5 +1,6 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
+const assert = std.debug.assert;
 
 const sdl2 = @import("sdl2.zig");
 const Texture = sdl2.SDL_Texture;
@@ -8,6 +9,7 @@ const Renderer = sdl2.SDL_Renderer;
 const drawcmd = @import("drawcmd.zig");
 const DrawCmd = drawcmd.DrawCmd;
 const DrawFill = drawcmd.DrawFill;
+const DrawRect = drawcmd.DrawRect;
 const DrawSprite = drawcmd.DrawSprite;
 const utils = @import("utils.zig");
 const Rect = utils.Rect;
@@ -58,7 +60,7 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
         .textJustify => |params| _ = params,
 
-        .rect => |params| _ = params,
+        .rect => |params| _ = processRectCmd(canvas, params),
 
         .rectFloat => |params| _ = params,
 
@@ -72,6 +74,33 @@ pub fn processFillCmd(canvas: Canvas, params: DrawFill) void {
     var src_rect = Rect{ .x = params.pos.x * @intCast(i32, cell_dims.width), .y = params.pos.y * @intCast(i32, cell_dims.height), .w = @intCast(u32, cell_dims.width), .h = @intCast(u32, cell_dims.height) };
     var sdl2_rect = Sdl2Rect(src_rect);
     _ = sdl2.SDL_RenderFillRect(canvas.renderer, &sdl2_rect);
+}
+
+pub fn processRectCmd(canvas: Canvas, params: DrawRect) void {
+    assert(params.offset_percent < 1.0);
+
+    const cell_dims = canvas.panel.cellDims();
+
+    _ = sdl2.SDL_SetRenderDrawColor(canvas.renderer, params.color.r, params.color.g, params.color.b, params.color.a);
+
+    const offset_x = @floatToInt(i32, @intToFloat(f32, cell_dims.width) * params.offset_percent);
+    const x: i32 = @intCast(i32, cell_dims.width) * params.pos.x + @intCast(i32, offset_x);
+
+    const offset_y = @floatToInt(i32, @intToFloat(f32, cell_dims.height) * params.offset_percent);
+    const y: i32 = @intCast(i32, cell_dims.height) * params.pos.y + @intCast(i32, offset_y);
+
+    const width = @intCast(u32, cell_dims.width * params.width - (2 * @intCast(u32, offset_x)));
+    const height = @intCast(u32, cell_dims.height * params.height - (2 * @intCast(u32, offset_y)));
+
+    const size = @intCast(u32, (canvas.panel.num_pixels.width / canvas.panel.cells.width) / 10);
+    if (params.filled) {
+        _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x, y, width, height)));
+    } else {
+        _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x, y, size, height)));
+        _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x, y, width, size)));
+        _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x + @intCast(i32, width), y, size, height + size)));
+        _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x, y + @intCast(i32, height), width + size, size)));
+    }
 }
 
 pub fn processSpriteCmd(canvas: Canvas, params: DrawSprite) void {
