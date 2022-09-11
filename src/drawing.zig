@@ -86,8 +86,8 @@ pub fn processSpriteCmd(canvas: Canvas, params: DrawSprite) void {
     _ = sdl2.SDL_SetTextureBlendMode(canvas.target, sdl2.SDL_BLENDMODE_BLEND);
 
     const src_rect = sprite_sheet.spriteSrc(params.sprite.index);
-    canvas.sprite_texture.set_color_mod(params.color.r, params.color.g, params.color.b);
-    canvas.sprite_texture.set_alpha_mod(params.color.a);
+    sdl2SDL_SetTextureColorMod(canvas.sprite_texture, params.color.r, params.color.g, params.color.b);
+    sdl2SDL_SetTextureAlphaMode(canvas.sprite_texture, params.color.a);
 
     sdl2.SDL_RenderCopyEx(canvas.renderer, canvas.sprite_texture, &src_rect, &dst_rect, sprite.rotation, null, flipFlags(params.sprite));
 }
