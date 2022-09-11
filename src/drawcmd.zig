@@ -1,5 +1,4 @@
-const sprite = @import("sprite.zig");
-const Sprite = sprite.Sprite;
+const Sprite = @import("sprite.zig").Sprite;
 const utils = @import("utils.zig");
 const Color = utils.Color;
 const Pos = utils.Pos;
@@ -51,5 +50,49 @@ pub const DrawCmd = union(enum) {
                 Pos.init(draw_cmd.x, draw_cmd.y);
             },
         }
+    }
+
+    pub fn sprite(spr: Sprite, color: Color, position: Pos) DrawCmd {
+        return DrawCmd{ .drawSprite = DrawSprite{ .sprite = spr, .color = color, .pos = position } };
+    }
+
+    pub fn spriteScaled(spr: Sprite, scale: f32, dir: Direction, color: Color, position: Pos) DrawCmd {
+        return DrawCmd{ .spriteScaled = DrawSpriteScaled{ .sprite = spr, .scale = scale, .dir = dir, .color = color, .pos = position } };
+    }
+
+    pub fn spriteFloat(spr: Sprite, color: Color, x: f32, y: f32, x_scale: f32, y_scale: f32) DrawCmd {
+        return DrawCmd{ .spriteFloat = DrawSpriteFloat{ .sprite = spr, .color = color, .x = x, .y = y, .x_scale = x_scale, .y_scale = y_scale } };
+    }
+
+    pub fn highlightTile(color: Color, position: Pos) DrawCmd {
+        return DrawCmd{ .highlightTile = DrawHighlightTile{ .pos = position, .color = color } };
+    }
+
+    pub fn outlineTile(color: Color, position: Pos) DrawCmd {
+        return DrawCmd{ .outlineTile = DrawOutlineTile{ .pos = position, .color = color } };
+    }
+
+    pub fn text(txt: [64]u8, color: Color, position: Pos, scale: f32) DrawCmd {
+        return DrawCmd{ .text = DrawText{ .text = txt, .pos = position, .color = color, .scale = scale } };
+    }
+
+    pub fn textFloat(txt: [64]u8, color: Color, x: f32, y: f32, scale: f32) DrawCmd {
+        return DrawCmd{ .textFloat = DrawTextFloat{ .text = txt, .color = color, .x = x, .y = y, .scale = scale } };
+    }
+
+    pub fn textJustify(txt: [64]u8, justify: Justify, fg_color: Color, bg_color: Color, position: Pos, width: u32, scale: f32) DrawCmd {
+        return DrawCmd{ .textJustify = DrawTextJustify{ .text = txt, .justify = justify, .fg_color = fg_color, .bg_color = bg_color, .pos = position, .width = width, .scale = scale } };
+    }
+
+    pub fn rect(position: Pos, width: u32, height: u32, offset_percent: f32, filled: bool, color: Color) DrawCmd {
+        return DrawCmd{ .rect = DrawRect{ .pos = position, .width = width, .height = height, .offset_percent = offset_percent, .filled = filled, .color = color } };
+    }
+
+    pub fn rectFloat(x: f32, y: f32, width: f32, height: f32, filled: bool, color: Color) DrawCmd {
+        return DrawCmd{ .rectFloat = DrawRectFloat{ .x = x, .y = y, .width = width, .height = height, .filled = filled, .color = color } };
+    }
+
+    pub fn fill(position: Pos, color: Color) DrawCmd {
+        return DrawCmd{ .fill = DrawFill{ .pos = position, .color = color } };
     }
 };

@@ -7,6 +7,7 @@ const Allocator = mem.Allocator;
 const sdl2 = @import("sdl2.zig");
 
 const drawcmd = @import("drawcmd.zig");
+const DrawCmd = drawcmd.DrawCmd;
 const panel = @import("panel.zig");
 const Panel = panel.Panel;
 const area = @import("area.zig");
@@ -134,7 +135,7 @@ const State = struct {
         _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 0, 0, 0, sdl2.SDL_ALPHA_OPAQUE);
         _ = sdl2.SDL_RenderClear(self.renderer);
 
-        const draw_cmd = drawcmd.DrawCmd{ .fill = drawcmd.DrawFill{ .pos = Pos.init(40, 40), .color = Color.init(255, 0, 0, 255) } };
+        const draw_cmd = DrawCmd.fill(Pos.init(40, 40), Color.init(255, 0, 0, 255));
         drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &draw_cmd);
 
         //var textTexture = try self.renderText("Hello, SDL2", makeColor(128, 128, 128, 128));
