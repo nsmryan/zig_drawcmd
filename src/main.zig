@@ -33,7 +33,7 @@ const State = struct {
     sprites: Sprites,
     panel: Panel,
 
-    fn create(allocator: Allocator) !State {
+    fn init(allocator: Allocator) !State {
         if (sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO) != 0) {
             sdl2.SDL_Log("Unable to initialize SDL: %s", sdl2.SDL_GetError());
             return error.SDLInitializationFailed;
@@ -52,7 +52,7 @@ const State = struct {
             return error.SDLInitializationFailed;
         };
 
-        const renderer = sdl2.SDL_CreateRenderer(window, -1, 0) orelse {
+        const renderer = sdl2.SDL_CreateRenderer(window, -1, sdl2.SDL_RENDERER_ACCELERATED) orelse {
             sdl2.SDL_Log("Unable to create renderer: %s", sdl2.SDL_GetError());
             return error.SDLInitializationFailed;
         };
@@ -62,10 +62,12 @@ const State = struct {
             return error.SDLInitializationFailed;
         };
 
-        if (sdl2.SDL_SetRenderTarget(renderer, screen_texture) != 0) {
-            sdl2.SDL_Log("Unable to set render target: %s", sdl2.SDL_GetError());
-            return error.SDLInitializationFailed;
-        }
+        // NOTE default to rendering to the screen. If we move to multiple targets, we may use this as a final
+        // back buffer so we can save/restore/etc the screen buffer.
+        //if (sdl2.SDL_SetRenderTarget(renderer, screen_texture) != 0) {
+        //    sdl2.SDL_Log("Unable to set render target: %s", sdl2.SDL_GetError());
+        //    return error.SDLInitializationFailed;
+        //}
 
         const sprite_surface = sdl2.IMG_Load("data/spriteAtlas.png") orelse {
             sdl2.SDL_Log("Unable to load sprite image: %s", sdl2.SDL_GetError());
@@ -119,22 +121,30 @@ const State = struct {
         return texture;
     }
 
-    fn destroy(self: *State) void {
+    fn deinit(self: *State) void {
+        sdl2.SDL_DestroyTexture(self.font_texture);
+        sdl2.SDL_DestroyTexture(self.screen_texture);
+        sdl2.TTF_CloseFont(self.font);
         sdl2.SDL_DestroyRenderer(self.renderer);
         sdl2.SDL_DestroyWindow(self.window);
         sdl2.SDL_Quit();
     }
 
     fn render(self: *State) !void {
-        var textTexture = try self.renderText("Hello, SDL2", makeColor(128, 128, 128, 128));
-        _ = sdl2.SDL_RenderCopyEx(self.renderer, textTexture, null, &sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 50 }, 0.0, null, 0);
-
-        const draw_cmd = drawcmd.DrawCmd{ .fill = drawcmd.DrawFill{ .pos = Pos.init(40, 40), .color = Color.init(128, 128, 128, 128) } };
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &draw_cmd);
-
-        sdl2.SDL_RenderPresent(self.renderer);
-        _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 0, 0, 0, 0);
+        _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 0, 0, 0, sdl2.SDL_ALPHA_OPAQUE);
         _ = sdl2.SDL_RenderClear(self.renderer);
+
+        //const draw_cmd = drawcmd.DrawCmd{ .fill = drawcmd.DrawFill{ .pos = Pos.init(40, 40), .color = Color.init(255, 0, 0, 255) } };
+        //drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &draw_cmd);
+
+        //var textTexture = try self.renderText("Hello, SDL2", makeColor(128, 128, 128, 128));
+        //_ = sdl2.SDL_RenderCopyEx(self.renderer, textTexture, null, &sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 50 }, 0.0, null, 0);
+
+        _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 255, 255, 255, sdl2.SDL_ALPHA_OPAQUE);
+        const sdl2_rect = sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 100 };
+        _ = sdl2.SDL_RenderFillRect(self.renderer, &sdl2_rect);
+        _ = sdl2.SDL_RenderDrawLine(self.renderer, 10, 10, 200, 200);
+        sdl2.SDL_RenderPresent(self.renderer);
     }
 
     fn wait_for_frame(self: *State) void {
@@ -239,8 +249,8 @@ pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
-    var state = try State.create(arena.allocator());
-    defer state.destroy();
+    var state = try State.init(arena.allocator());
+    defer state.deinit();
 
     var quit = false;
     while (!quit) {
