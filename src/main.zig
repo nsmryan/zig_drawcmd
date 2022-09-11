@@ -6,17 +6,27 @@ const sdl2 = @import("sdl2.zig");
 
 const drawcmd = @import("drawcmd.zig");
 const panel = @import("panel.zig");
+const Panel = panel.Panel;
 const area = @import("area.zig");
+const Dims = area.Dims;
 const utils = @import("utils.zig");
 const sprite = @import("sprite.zig");
+const drawing = @import("drawing.zig");
+const Pos = utils.Pos;
+const Color = utils.Color;
 
 const window_width: c_int = 800;
 const window_height: c_int = 600;
+const ASCII_START: usize = 32;
+const ASCII_END: usize = 127;
 
 const State = struct {
     window: *sdl2.SDL_Window,
     renderer: *sdl2.SDL_Renderer,
     font: *sdl2.TTF_Font,
+    screen_texture: *sdl2.SDL_Texture,
+    sprite_texture: *sdl2.SDL_Texture,
+    panel: Panel,
 
     fn create() !State {
         if (sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO) != 0) {
@@ -42,18 +52,43 @@ const State = struct {
             return error.SDLInitializationFailed;
         };
 
+        const screen_texture = sdl2.SDL_CreateTexture(renderer, sdl2.SDL_PIXELFORMAT_RGBA8888, sdl2.SDL_TEXTUREACCESS_TARGET, window_width, window_height) orelse {
+            sdl2.SDL_Log("Unable to create screen texture: %s", sdl2.SDL_GetError());
+            return error.SDLInitializationFailed;
+        };
+
+        if (sdl2.SDL_SetRenderTarget(renderer, screen_texture) != 0) {
+            sdl2.SDL_Log("Unable to set render target: %s", sdl2.SDL_GetError());
+            return error.SDLInitializationFailed;
+        }
+
+        const sprite_surface = sdl2.IMG_Load("data/spriteAtlas.png") orelse {
+            sdl2.SDL_Log("Unable to load sprite image: %s", sdl2.SDL_GetError());
+            return error.SDLInitializationFailed;
+        };
+        defer sdl2.SDL_FreeSurface(sprite_surface);
+
+        const sprite_texture = sdl2.SDL_CreateTextureFromSurface(renderer, sprite_surface) orelse {
+            sdl2.SDL_Log("Unable to create sprite texture: %s", sdl2.SDL_GetError());
+            return error.SDLInitializationFailed;
+        };
+
         const font = sdl2.TTF_OpenFont("data/Monoid.ttf", 20) orelse {
             sdl2.SDL_Log("Unable to create font from tff: %s", sdl2.SDL_GetError());
             return error.SDLInitializationFailed;
         };
 
-        var game: State = State{ .window = window, .renderer = renderer, .font = font };
+        const num_pixels = Dims.init(window_width, window_height);
+        const cell_dims = Dims.init(80, 60);
+        const screen_panel = Panel.init(num_pixels, cell_dims);
+
+        var game: State = State{ .window = window, .renderer = renderer, .font = font, .panel = screen_panel, .sprite_texture = sprite_texture, .screen_texture = screen_texture };
         return game;
     }
 
     fn renderText(self: *State, text: []const u8, color: sdl2.SDL_Color) !*sdl2.SDL_Texture {
         const c_text = @ptrCast([*c]const u8, text);
-        const text_surface = sdl2.TTF_RenderText_Solid(self.font, c_text, color) orelse {
+        const text_surface = sdl2.TTF_RenderText_Blended(self.font, c_text, color) orelse {
             sdl2.SDL_Log("Unable to create text from font: %s", sdl2.SDL_GetError());
             return error.SDLInitializationFailed;
         };
@@ -75,6 +110,10 @@ const State = struct {
     fn render(self: *State) !void {
         var textTexture = try self.renderText("Hello, SDL2", makeColor(128, 128, 128, 128));
         _ = sdl2.SDL_RenderCopyEx(self.renderer, textTexture, null, &sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 50 }, 0.0, null, 0);
+
+        const draw_cmd = drawcmd.DrawCmd{ .fill = drawcmd.DrawFill{ .pos = Pos.init(40, 40), .color = Color.init(128, 128, 128, 128) } };
+        drawing.processDrawCmd(&self.panel, self.screen_texture, self.sprite_texture, self.font_texture, &draw_cmd);
+
         sdl2.SDL_RenderPresent(self.renderer);
         _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 0, 0, 0, 0);
         _ = sdl2.SDL_RenderClear(self.renderer);
@@ -152,6 +191,26 @@ const State = struct {
         return quit;
     }
 };
+
+pub fn renderAsciiCharacters(renderer: sdl2.Renderer, font: *const sdl2.TTF_Font) !*sdl2.Texture {
+    sdl2.TTF_SetFontStyle(font, sdl2.TTF_STYLE_BOLD);
+
+    var chrs: [256]u8 = [_]u8{0} * 256;
+    var chr_index = 0;
+    while (chr_index < 256) : (chr_index += 1) {
+        chrs[chr_index] = @intCast(u8, chr_index);
+    }
+
+    var text_surface = sdl2.TTF_RenderUTF8_Blended(font, &chrs[ASCII_START..ASCII_END], makeColor(255, 255, 255));
+    defer sdl2.SDL_FreeSurface(text_surface);
+
+    var font_texture = sdl2.SDL_CreateTextureFromSurface(renderer, text_surface) orelse {
+        sdl2.SDL_Log("Unable to create sprite texture: %s", sdl2.SDL_GetError());
+        return error.SDLInitializationFailed;
+    };
+
+    return font_texture;
+}
 
 pub fn makeColor(r: u8, g: u8, b: u8, a: u8) sdl2.SDL_Color {
     return sdl2.SDL_Color{ .r = r, .g = g, .b = b, .a = a };

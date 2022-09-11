@@ -1,9 +1,10 @@
 const std = @import("std");
 const assert = @import("std").debug.assert;
 
-const Area = @import("area.zig").Area;
+const area = @import("area.zig");
+const Area = area.Area;
+const Dims = area.Dims;
 const utils = @import("utils.zig");
-const Dims = utils.Rect;
 const Rect = utils.Rect;
 const Pos = utils.Pos;
 
@@ -11,10 +12,10 @@ pub const Panel = struct {
     cells: Dims,
     num_pixels: Dims,
 
-    pub fn new(num_pixels: Dims, cells: Dims) Panel {
+    pub fn init(num_pixels: Dims, cells: Dims) Panel {
         return Panel{
-            cells,
-            num_pixels,
+            .cells = cells,
+            .num_pixels = num_pixels,
         };
     }
 
@@ -52,14 +53,14 @@ pub const Panel = struct {
         return Rect{ .x = 0, .y = 0, .w = pixel_width, .h = pixel_height };
     }
 
-    pub fn getRectFromArea(self: *const Panel, area: Area) Rect {
+    pub fn getRectFromArea(self: *const Panel, input_area: Area) Rect {
         const cell_dims = self.cellDims();
 
-        const x_offset = @as(f32, area.x_offset) * @as(f32, cell_dims.width);
-        const y_offset = @as(f32, area.y_offset) * @as(f32, cell_dims.height);
+        const x_offset = @as(f32, input_area.x_offset) * @as(f32, cell_dims.width);
+        const y_offset = @as(f32, input_area.y_offset) * @as(f32, cell_dims.height);
 
-        const width = @as(u32, @as(f32, area.width) * @as(f32, cell_dims.width));
-        const height = @as(u32, @as(f32, area.height) * @as(f32, cell_dims.height));
+        const width = @as(u32, @as(f32, input_area.width) * @as(f32, cell_dims.width));
+        const height = @as(u32, @as(f32, input_area.height) * @as(f32, cell_dims.height));
 
         // don't draw off the screen
         assert(@intCast(u32, x_offset) + width <= self.num_pixels.width);
@@ -68,8 +69,8 @@ pub const Panel = struct {
         return Rect{ .x = @intCast(i32, x_offset), .y = @intCast(i32, y_offset), .w = width, .h = height };
     }
 
-    pub fn getRectWithin(self: *const Panel, area: Area, target_dims: Dims) Rect {
-        const base_rect = self.getRectFromArea(area);
+    pub fn getRectWithin(self: *const Panel, input_area: Area, target_dims: Dims) Rect {
+        const base_rect = self.getRectFromArea(input_area);
 
         const scale_x = @as(f32, base_rect.w) / @as(f32, target_dims.width);
         const scale_y = @as(f32, base_rect.h) / @as(f32, target_dims.height);
