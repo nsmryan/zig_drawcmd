@@ -16,7 +16,7 @@ pub const Color = struct {
     a: u8,
 
     pub fn init(r: u8, g: u8, b: u8, a: u8) Color {
-        return Rect{ .r = r, .g = g, .b = b, .a = a };
+        return Color{ .r = r, .g = g, .b = b, .a = a };
     }
 };
 
@@ -25,7 +25,7 @@ pub const Pos = struct {
     y: i32,
 
     pub fn init(x: i32, y: i32) Pos {
-        return Rect{ .x = x, .y = y };
+        return Pos{ .x = x, .y = y };
     }
 };
 

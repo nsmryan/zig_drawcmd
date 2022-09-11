@@ -1,6 +1,6 @@
 const sdl2 = @import("sdl2.zig");
-const Texture = sdl2.Texture;
-const Renderer = sdl2.Renderer;
+const Texture = sdl2.SDL_Texture;
+const Renderer = sdl2.SDL_Renderer;
 const drawcmd = @import("drawcmd.zig");
 const DrawCmd = drawcmd.DrawCmd;
 const DrawFill = drawcmd.DrawFill;
@@ -20,14 +20,14 @@ pub const Canvas = struct {
     sprite_texture: *Texture,
     font_texture: *Texture,
 
-    pub fn init(panel: *Panel, renderer: Renderer, target: *Texture, sprite_texture: *Texture, font_texture: *Texture) Canvas {
+    pub fn init(panel: *Panel, renderer: *Renderer, target: *Texture, sprite_texture: *Texture, font_texture: *Texture) Canvas {
         return Canvas{ .panel = panel, .renderer = renderer, .target = target, .sprite_texture = sprite_texture, .font_texture = font_texture };
     }
 };
 
-pub fn processDrawCmd(panel: *const Panel, renderer: *Renderer, texture: *Texture, sprite_texture: *Texture, font_texture: *Texture, draw_cmd: *const DrawCmd) void {
+pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, sprite_texture: *Texture, font_texture: *Texture, draw_cmd: *const DrawCmd) void {
     var canvas = Canvas.init(panel, renderer, texture, sprite_texture, font_texture);
-    switch (draw_cmd) {
+    switch (draw_cmd.*) {
         .sprite => |params| processSpriteCmd(canvas, params),
 
         .spriteScaled => |params| _ = params,
@@ -52,15 +52,17 @@ pub fn processDrawCmd(panel: *const Panel, renderer: *Renderer, texture: *Textur
     }
 }
 
-pub fn processFillCmd(canvas: Canvas, params: *const DrawFill) void {
-    const cell_dims = canvas.panel.cell_dims();
-    canvas.texture.set_draw_color(Sdl2Color(params.color));
-    sdl2.SDL_RenderFillRect(canvas.renderer, Rect{ .x = @intCast(i32, params.pos.x * cell_dims.width), .y = @intCast(i32, params.pos.y * cell_dims.height), .w = cell_dims.width, .h = cell_dims.height });
+pub fn processFillCmd(canvas: Canvas, params: DrawFill) void {
+    const cell_dims = canvas.panel.cellDims();
+    _ = sdl2.SDL_SetRenderDrawColor(canvas.renderer, params.color.r, params.color.g, params.color.b, params.color.a);
+    var src_rect = Rect{ .x = params.pos.x * @intCast(i32, cell_dims.width), .y = params.pos.y * @intCast(i32, cell_dims.height), .w = @intCast(u32, cell_dims.width), .h = @intCast(u32, cell_dims.height) };
+    var sdl2_rect = Sdl2Rect(src_rect);
+    _ = sdl2.SDL_RenderFillRect(canvas.renderer, &sdl2_rect);
 }
 
-pub fn processSpriteCmd(canvas: Canvas, params: *const DrawSprite) void {
+pub fn processSpriteCmd(canvas: Canvas, params: DrawSprite) void {
     const sprite_sheet = &canvas.sprites[sprite.key];
-    const cell_dims = canvas.panel.cell_dims();
+    const cell_dims = canvas.panel.cellDims();
 
     const pos = Pos.init(@intCast(i32, params.pos.x * cell_dims.width), @intCast(i32, params.pos.y * cell_dims.height));
 
@@ -75,7 +77,7 @@ pub fn processSpriteCmd(canvas: Canvas, params: *const DrawSprite) void {
     sdl2.SDL_RenderCopyEx(canvas.renderer, canvas.sprite_texture, &src_rect, &dst_rect, sprite.rotation, null, flipFlags(params.sprite));
 }
 
-//    const cell_dims = panel.cell_dims();
+//    const cell_dims = panel.cellDims();
 //    const sprite_sheet = &sprites[sprite.key];
 //
 //    const src_rect = sprite_sheet.sprite_src(sprite.index);
@@ -161,4 +163,8 @@ pub fn flipFlags(spr: *const Sprite) sdl2.SDL_RenderFlip {
 
 pub fn Sdl2Color(color: utils.Color) sdl2.SDL_Color {
     return sdl2.SDL_Color{ .r = color.r, .g = color.g, .b = color.b, .a = color.a };
+}
+
+pub fn Sdl2Rect(rect: Rect) sdl2.SDL_Rect {
+    return sdl2.SDL_Rect{ .x = rect.x, .y = rect.y, .w = @intCast(c_int, rect.w), .h = @intCast(c_int, rect.h) };
 }

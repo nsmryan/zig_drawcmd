@@ -24,6 +24,7 @@ const State = struct {
     window: *sdl2.SDL_Window,
     renderer: *sdl2.SDL_Renderer,
     font: *sdl2.TTF_Font,
+    font_texture: *sdl2.SDL_Texture,
     screen_texture: *sdl2.SDL_Texture,
     sprite_texture: *sdl2.SDL_Texture,
     panel: Panel,
@@ -78,11 +79,13 @@ const State = struct {
             return error.SDLInitializationFailed;
         };
 
+        const font_texture = try renderAsciiCharacters(renderer, font);
+
         const num_pixels = Dims.init(window_width, window_height);
         const cell_dims = Dims.init(80, 60);
         const screen_panel = Panel.init(num_pixels, cell_dims);
 
-        var game: State = State{ .window = window, .renderer = renderer, .font = font, .panel = screen_panel, .sprite_texture = sprite_texture, .screen_texture = screen_texture };
+        var game: State = State{ .window = window, .renderer = renderer, .font = font, .font_texture = font_texture, .panel = screen_panel, .sprite_texture = sprite_texture, .screen_texture = screen_texture };
         return game;
     }
 
@@ -112,7 +115,7 @@ const State = struct {
         _ = sdl2.SDL_RenderCopyEx(self.renderer, textTexture, null, &sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 50 }, 0.0, null, 0);
 
         const draw_cmd = drawcmd.DrawCmd{ .fill = drawcmd.DrawFill{ .pos = Pos.init(40, 40), .color = Color.init(128, 128, 128, 128) } };
-        drawing.processDrawCmd(&self.panel, self.screen_texture, self.sprite_texture, self.font_texture, &draw_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, self.sprite_texture, self.font_texture, &draw_cmd);
 
         sdl2.SDL_RenderPresent(self.renderer);
         _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 0, 0, 0, 0);
@@ -192,16 +195,17 @@ const State = struct {
     }
 };
 
-pub fn renderAsciiCharacters(renderer: sdl2.Renderer, font: *const sdl2.TTF_Font) !*sdl2.Texture {
+pub fn renderAsciiCharacters(renderer: *sdl2.SDL_Renderer, font: *sdl2.TTF_Font) !*sdl2.SDL_Texture {
     sdl2.TTF_SetFontStyle(font, sdl2.TTF_STYLE_BOLD);
 
-    var chrs: [256]u8 = [_]u8{0} * 256;
-    var chr_index = 0;
+    var chrs: [256]u8 = undefined;
+    var chr_index: usize = 0;
     while (chr_index < 256) : (chr_index += 1) {
         chrs[chr_index] = @intCast(u8, chr_index);
     }
 
-    var text_surface = sdl2.TTF_RenderUTF8_Blended(font, &chrs[ASCII_START..ASCII_END], makeColor(255, 255, 255));
+    var ascii_chrs = chrs[ASCII_START..ASCII_END];
+    var text_surface = sdl2.TTF_RenderUTF8_Blended(font, ascii_chrs[0..], makeColor(255, 255, 255, 255));
     defer sdl2.SDL_FreeSurface(text_surface);
 
     var font_texture = sdl2.SDL_CreateTextureFromSurface(renderer, text_surface) orelse {
