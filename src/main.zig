@@ -134,16 +134,12 @@ const State = struct {
         _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 0, 0, 0, sdl2.SDL_ALPHA_OPAQUE);
         _ = sdl2.SDL_RenderClear(self.renderer);
 
-        //const draw_cmd = drawcmd.DrawCmd{ .fill = drawcmd.DrawFill{ .pos = Pos.init(40, 40), .color = Color.init(255, 0, 0, 255) } };
-        //drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &draw_cmd);
+        const draw_cmd = drawcmd.DrawCmd{ .fill = drawcmd.DrawFill{ .pos = Pos.init(40, 40), .color = Color.init(255, 0, 0, 255) } };
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &draw_cmd);
 
         //var textTexture = try self.renderText("Hello, SDL2", makeColor(128, 128, 128, 128));
         //_ = sdl2.SDL_RenderCopyEx(self.renderer, textTexture, null, &sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 50 }, 0.0, null, 0);
 
-        _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 255, 255, 255, sdl2.SDL_ALPHA_OPAQUE);
-        const sdl2_rect = sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 100 };
-        _ = sdl2.SDL_RenderFillRect(self.renderer, &sdl2_rect);
-        _ = sdl2.SDL_RenderDrawLine(self.renderer, 10, 10, 200, 200);
         sdl2.SDL_RenderPresent(self.renderer);
     }
 
