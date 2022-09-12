@@ -68,7 +68,7 @@ pub const DrawCmd = union(enum) {
         return DrawCmd{ .highlightTile = DrawHighlightTile{ .pos = position, .color = color } };
     }
 
-    pub fn outlineTile(color: Color, position: Pos) DrawCmd {
+    pub fn outlineTile(position: Pos, color: Color) DrawCmd {
         return DrawCmd{ .outlineTile = DrawOutlineTile{ .pos = position, .color = color } };
     }
 

@@ -12,6 +12,7 @@ const DrawFill = drawcmd.DrawFill;
 const DrawRect = drawcmd.DrawRect;
 const DrawSprite = drawcmd.DrawSprite;
 const DrawRectFloat = drawcmd.DrawRectFloat;
+const DrawOutlineTile = drawcmd.DrawOutlineTile;
 const utils = @import("utils.zig");
 const Rect = utils.Rect;
 const Pos = utils.Pos;
@@ -53,7 +54,7 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
         .highlightTile => |params| _ = params,
 
-        .outlineTile => |params| _ = params,
+        .outlineTile => |params| _ = processOutlineTile(canvas, params),
 
         .text => |params| _ = params,
 
@@ -67,6 +68,22 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
         .fill => |params| processFillCmd(canvas, params),
     }
+}
+
+pub fn processOutlineTile(canvas: Canvas, params: DrawOutlineTile) void {
+    const cell_dims = canvas.panel.cellDims();
+
+    _ = sdl2.SDL_SetTextureBlendMode(canvas.target, sdl2.SDL_BLENDMODE_BLEND);
+    _ = sdl2.SDL_SetRenderDrawColor(canvas.renderer, params.color.r, params.color.g, params.color.b, params.color.a);
+
+    const rect = Rect.init(
+        params.pos.x * @intCast(i32, cell_dims.width) + 1,
+        params.pos.y * @intCast(i32, cell_dims.height) + 1,
+        @intCast(u32, cell_dims.width),
+        @intCast(u32, cell_dims.height),
+    );
+
+    _ = sdl2.SDL_RenderDrawRect(canvas.renderer, &Sdl2Rect(rect));
 }
 
 pub fn processFillCmd(canvas: Canvas, params: DrawFill) void {
