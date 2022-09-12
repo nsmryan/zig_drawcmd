@@ -64,12 +64,14 @@ pub const DrawCmd = union(enum) {
         return DrawCmd{ .spriteFloat = DrawSpriteFloat{ .sprite = spr, .color = color, .x = x, .y = y, .x_scale = x_scale, .y_scale = y_scale } };
     }
 
-    pub fn highlightTile(color: Color, position: Pos) DrawCmd {
+    pub fn highlightTile(position: Pos, color: Color) DrawCmd {
         return DrawCmd{ .highlightTile = DrawHighlightTile{ .pos = position, .color = color } };
+        //return DrawCmd{ .rect = DrawRect{ .pos = position, .width = 1, .height = 1, .offset_percent = 0.0, .filled = true, .color = color } };
     }
 
     pub fn outlineTile(position: Pos, color: Color) DrawCmd {
         return DrawCmd{ .outlineTile = DrawOutlineTile{ .pos = position, .color = color } };
+        //return DrawCmd{ .rect = DrawRect{ .pos = position, .width = 1, .height = 1, .offset_percent = 0.0, .filled = false, .color = color } };
     }
 
     pub fn text(txt: [64]u8, color: Color, position: Pos, scale: f32) DrawCmd {

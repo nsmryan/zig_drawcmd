@@ -13,6 +13,7 @@ const DrawRect = drawcmd.DrawRect;
 const DrawSprite = drawcmd.DrawSprite;
 const DrawRectFloat = drawcmd.DrawRectFloat;
 const DrawOutlineTile = drawcmd.DrawOutlineTile;
+const DrawHighlightTile = drawcmd.DrawHighlightTile;
 const utils = @import("utils.zig");
 const Rect = utils.Rect;
 const Pos = utils.Pos;
@@ -52,7 +53,7 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
         .spriteFloat => |params| _ = params,
 
-        .highlightTile => |params| _ = params,
+        .highlightTile => |params| _ = processHighlightTile(canvas, params),
 
         .outlineTile => |params| _ = processOutlineTile(canvas, params),
 
@@ -70,10 +71,26 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
     }
 }
 
+pub fn processHighlightTile(canvas: Canvas, params: DrawHighlightTile) void {
+    const cell_dims = canvas.panel.cellDims();
+
+    _ = sdl2.SDL_SetRenderDrawBlendMode(canvas.renderer, sdl2.SDL_BLENDMODE_BLEND);
+    _ = sdl2.SDL_SetRenderDrawColor(canvas.renderer, params.color.r, params.color.g, params.color.b, params.color.a);
+
+    const rect = Rect.init(
+        params.pos.x * @intCast(i32, cell_dims.width),
+        params.pos.y * @intCast(i32, cell_dims.height),
+        @intCast(u32, cell_dims.width),
+        @intCast(u32, cell_dims.height),
+    );
+
+    _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(rect));
+}
+
 pub fn processOutlineTile(canvas: Canvas, params: DrawOutlineTile) void {
     const cell_dims = canvas.panel.cellDims();
 
-    _ = sdl2.SDL_SetTextureBlendMode(canvas.target, sdl2.SDL_BLENDMODE_BLEND);
+    _ = sdl2.SDL_SetRenderDrawBlendMode(canvas.renderer, sdl2.SDL_BLENDMODE_BLEND);
     _ = sdl2.SDL_SetRenderDrawColor(canvas.renderer, params.color.r, params.color.g, params.color.b, params.color.a);
 
     const rect = Rect.init(
@@ -99,6 +116,7 @@ pub fn processRectCmd(canvas: Canvas, params: DrawRect) void {
 
     const cell_dims = canvas.panel.cellDims();
 
+    _ = sdl2.SDL_SetRenderDrawBlendMode(canvas.renderer, sdl2.SDL_BLENDMODE_BLEND);
     _ = sdl2.SDL_SetRenderDrawColor(canvas.renderer, params.color.r, params.color.g, params.color.b, params.color.a);
 
     const offset_x = @floatToInt(i32, @intToFloat(f32, cell_dims.width) * params.offset_percent);
@@ -110,10 +128,10 @@ pub fn processRectCmd(canvas: Canvas, params: DrawRect) void {
     const width = @intCast(u32, cell_dims.width * params.width - (2 * @intCast(u32, offset_x)));
     const height = @intCast(u32, cell_dims.height * params.height - (2 * @intCast(u32, offset_y)));
 
-    const size = @intCast(u32, (canvas.panel.num_pixels.width / canvas.panel.cells.width) / 10);
     if (params.filled) {
         _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x, y, width, height)));
     } else {
+        const size = @intCast(u32, (canvas.panel.num_pixels.width / canvas.panel.cells.width) / 10);
         _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x, y, size, height)));
         _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x, y, width, size)));
         _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x + @intCast(i32, width), y, size, height + size)));
