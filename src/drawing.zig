@@ -11,6 +11,7 @@ const DrawCmd = drawcmd.DrawCmd;
 const DrawFill = drawcmd.DrawFill;
 const DrawRect = drawcmd.DrawRect;
 const DrawSprite = drawcmd.DrawSprite;
+const DrawRectFloat = drawcmd.DrawRectFloat;
 const utils = @import("utils.zig");
 const Rect = utils.Rect;
 const Pos = utils.Pos;
@@ -62,7 +63,7 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
         .rect => |params| _ = processRectCmd(canvas, params),
 
-        .rectFloat => |params| _ = params,
+        .rectFloat => |params| _ = processRectFloatCmd(canvas, params),
 
         .fill => |params| processFillCmd(canvas, params),
     }
@@ -100,6 +101,28 @@ pub fn processRectCmd(canvas: Canvas, params: DrawRect) void {
         _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x, y, width, size)));
         _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x + @intCast(i32, width), y, size, height + size)));
         _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x, y + @intCast(i32, height), width + size, size)));
+    }
+}
+
+pub fn processRectFloatCmd(canvas: Canvas, params: DrawRectFloat) void {
+    const cell_dims = canvas.panel.cellDims();
+
+    _ = sdl2.SDL_SetRenderDrawColor(canvas.renderer, params.color.r, params.color.g, params.color.b, params.color.a);
+
+    const x_offset = @floatToInt(i32, params.x * @intToFloat(f32, cell_dims.width));
+    const y_offset = @floatToInt(i32, params.y * @intToFloat(f32, cell_dims.height));
+
+    const width = @floatToInt(u32, params.width * @intToFloat(f32, cell_dims.width));
+    const height = @floatToInt(u32, params.height * @intToFloat(f32, cell_dims.height));
+
+    const size = @intCast(u32, (canvas.panel.num_pixels.width / canvas.panel.cells.width) / 5);
+    if (params.filled) {
+        _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x_offset, y_offset, width, height)));
+    } else {
+        _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x_offset, y_offset, size, height)));
+        _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x_offset, y_offset, width + size, size)));
+        _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x_offset + @intCast(i32, width), y_offset, size, height)));
+        _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(Rect.init(x_offset, y_offset + @intCast(i32, height) - @intCast(i32, size), width + size, size)));
     }
 }
 
