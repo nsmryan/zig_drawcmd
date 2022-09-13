@@ -12,6 +12,7 @@ const DrawFill = drawcmd.DrawFill;
 const DrawRect = drawcmd.DrawRect;
 const DrawSprite = drawcmd.DrawSprite;
 const DrawSpriteScaled = drawcmd.DrawSpriteScaled;
+const DrawSpriteFloat = drawcmd.DrawSpriteFloat;
 const DrawRectFloat = drawcmd.DrawRectFloat;
 const DrawOutlineTile = drawcmd.DrawOutlineTile;
 const DrawHighlightTile = drawcmd.DrawHighlightTile;
@@ -52,7 +53,7 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
         .spriteScaled => |params| _ = processSpriteScale(canvas, params),
 
-        .spriteFloat => |params| _ = params,
+        .spriteFloat => |params| _ = processSpriteFloat(canvas, params),
 
         .highlightTile => |params| _ = processHighlightTile(canvas, params),
 
@@ -72,8 +73,41 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
     }
 }
 
+pub fn processSpriteFloat(canvas: Canvas, params: DrawSpriteFloat) void {
+    const sprite_sheet = &canvas.sprites.sheets.items[params.sprite.key];
+
+    const cell_dims = canvas.panel.cellDims();
+
+    const src_rect = sprite_sheet.spriteSrc(params.sprite.index);
+
+    const x_offset = @floatToInt(i32, params.x * @intToFloat(f32, cell_dims.width));
+    const y_offset = @floatToInt(i32, params.y * @intToFloat(f32, cell_dims.height));
+
+    const dst_rect = Rect.init(
+        x_offset,
+        y_offset,
+        @floatToInt(u32, @intToFloat(f32, cell_dims.width) * params.x_scale),
+        @floatToInt(u32, @intToFloat(f32, cell_dims.height) * params.y_scale),
+    );
+
+    _ = sdl2.SDL_SetTextureBlendMode(canvas.target, sdl2.SDL_BLENDMODE_BLEND);
+    // NOTE(error) ignoring error return.
+    _ = sdl2.SDL_SetTextureColorMod(canvas.sprites.texture, params.color.r, params.color.g, params.color.b);
+    // NOTE(error) ignoring error return.
+    _ = sdl2.SDL_SetTextureAlphaMod(canvas.sprites.texture, params.color.a);
+
+    _ = sdl2.SDL_RenderCopyEx(
+        canvas.renderer,
+        canvas.sprites.texture,
+        &Sdl2Rect(src_rect),
+        &Sdl2Rect(dst_rect),
+        params.sprite.rotation,
+        null,
+        flipFlags(&params.sprite),
+    );
+}
+
 pub fn processSpriteScale(canvas: Canvas, params: DrawSpriteScaled) void {
-    std.debug.print("spr scaled\n", .{});
     const cell_dims = canvas.panel.cellDims();
     const sprite_sheet = &canvas.sprites.sheets.items[params.sprite.key];
 
@@ -137,7 +171,6 @@ pub fn processSpriteScale(canvas: Canvas, params: DrawSpriteScaled) void {
     _ = sdl2.SDL_SetTextureColorMod(canvas.sprites.texture, params.color.r, params.color.g, params.color.b);
     // NOTE(error) ignoring error return.
     _ = sdl2.SDL_SetTextureAlphaMod(canvas.sprites.texture, params.color.a);
-    std.debug.print("{} {}\n", .{ src_rect, dst_rect });
 
     // NOTE(error) ignoring error return.
     _ = sdl2.SDL_RenderCopyEx(
