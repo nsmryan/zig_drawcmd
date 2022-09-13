@@ -73,10 +73,11 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 }
 
 pub fn processSpriteScale(canvas: Canvas, params: DrawSpriteScaled) void {
-    const cell_dims = params.panel.cellDims();
-    const sprite_sheet = &canvas.sprites[params.sprite.key];
+    std.debug.print("spr scaled\n", .{});
+    const cell_dims = canvas.panel.cellDims();
+    const sprite_sheet = &canvas.sprites.sheets.items[params.sprite.key];
 
-    const src_rect = sprite_sheet.sprite_src(sprite.index);
+    const src_rect = sprite_sheet.spriteSrc(params.sprite.index);
 
     const dst_width = @floatToInt(u32, @intToFloat(f32, cell_dims.width) * params.scale);
     const dst_height = @floatToInt(u32, @intToFloat(f32, cell_dims.height) * params.scale);
@@ -87,55 +88,56 @@ pub fn processSpriteScale(canvas: Canvas, params: DrawSpriteScaled) void {
     var dst_x = params.pos.x * @intCast(i32, cell_dims.width);
     var dst_y = params.pos.y * @intCast(i32, cell_dims.height);
 
-    switch (params.direction) {
-        .Center => {
+    switch (params.dir) {
+        .center => {
             dst_x += x_margin;
             dst_y += y_margin;
         },
 
-        .Left => {
+        .left => {
             dst_y += y_margin;
         },
 
-        .Right => {
+        .right => {
             dst_x += @intCast(i32, cell_dims.width) - @intCast(i32, dst_width);
             dst_y += y_margin;
         },
 
-        .Up => {
+        .up => {
             dst_x += x_margin;
         },
 
-        .Down => {
+        .down => {
             dst_x += x_margin;
             dst_y += @intCast(i32, cell_dims.height) - @intCast(i32, dst_height);
         },
 
-        .DownLeft => {
+        .downLeft => {
             dst_y += @intCast(i32, cell_dims.height) - @intCast(i32, dst_height);
         },
 
-        .DownRight => {
+        .downRight => {
             dst_x += @intCast(i32, cell_dims.width) - @intCast(i32, dst_width);
             dst_y += @intCast(i32, cell_dims.height) - @intCast(i32, dst_height);
         },
 
-        .UpLeft => {
+        .upLeft => {
             // Already in the upper left corner by default.
         },
 
-        .UpRight => {
+        .upRight => {
             dst_x += @intCast(i32, cell_dims.width) - @intCast(i32, dst_width);
         },
     }
 
-    const dst = Rect.init(dst_x, dst_y, dst_width, dst_height);
+    const dst_rect = Rect.init(dst_x, dst_y, dst_width, dst_height);
 
     _ = sdl2.SDL_SetTextureBlendMode(canvas.target, sdl2.SDL_BLENDMODE_BLEND);
     // NOTE(error) ignoring error return.
     _ = sdl2.SDL_SetTextureColorMod(canvas.sprites.texture, params.color.r, params.color.g, params.color.b);
     // NOTE(error) ignoring error return.
     _ = sdl2.SDL_SetTextureAlphaMod(canvas.sprites.texture, params.color.a);
+    std.debug.print("{} {}\n", .{ src_rect, dst_rect });
 
     // NOTE(error) ignoring error return.
     _ = sdl2.SDL_RenderCopyEx(

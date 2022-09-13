@@ -31,12 +31,12 @@ pub const Pos = struct {
 
 pub const Direction = enum {
     right,
-    downright,
+    downRight,
     down,
-    downleft,
+    downLeft,
     left,
-    upleft,
+    upLeft,
     up,
-    upright,
+    upRight,
     center,
 };
