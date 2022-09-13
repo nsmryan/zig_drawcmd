@@ -49,7 +49,7 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
     switch (draw_cmd.*) {
         .sprite => |params| processSpriteCmd(canvas, params),
 
-        .spriteScaled => |params| _ = params,
+        .spriteScaled => |params| _ = processSpriteScale(canvas, params),
 
         .spriteFloat => |params| _ = params,
 
@@ -69,6 +69,83 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
         .fill => |params| processFillCmd(canvas, params),
     }
+}
+
+pub fn processSpriteScale(canvas: Canvas, params: DrawSpriteScaled) void {
+    const cell_dims = params.panel.cellDims();
+    const sprite_sheet = &sprites[params.sprite.key];
+
+    const src_rect = sprite_sheet.sprite_src(sprite.index);
+
+    const dst_width = @floatToInt(u32, @intToFloat(f32, cell_dims.width) * scale);
+    const dst_height = @floatToInt(u32, @intToFloat(f32, cell_dims.height) * scale);
+
+    const x_margin = @intCast(i32, (cell_dims.width - dst_width) / 2);
+    const y_margin = @intCast(i32, (cell_dims.height - dst_height) / 2);
+
+    var dst_x = params.pos.x * @intCast(i32, cell_dims.width);
+    var dst_y = params.pos.y * @intCast(i32, cell_dims.height);
+
+    switch (params.direction) {
+        .Center => {
+            dst_x += x_margin;
+            dst_y += y_margin;
+        },
+
+        .Left => {
+            dst_y += y_margin;
+        },
+
+        .Right => {
+            dst_x += @intCast(i32, cell_dims.width) - @intCast(i32, dst_width);
+            dst_y += y_margin;
+        },
+
+        .Up => {
+            dst_x += x_margin;
+        },
+
+        .Down => {
+            dst_x += x_margin;
+            dst_y += @intCast(i32, cell_dims.height) - @intCast(i32, dst_height);
+        },
+
+        .DownLeft => {
+            dst_y += @intCast(i32, cell_dims.height) - @intCast(i32, dst_height);
+        },
+
+        .DownRight => {
+            dst_x += @intCast(i32, cell_dims.width) - @intCast(i32, dst_width);
+            dst_y += @intCast(i32, cell_dims.height) - @intCast(i32, dst_height);
+        },
+
+        .UpLeft => {
+            // Already in the upper left corner by default.
+        },
+
+        .UpRight => {
+            dst_x += @intCast(i32, cell_dims.width) - @intCast(i32, dst_width);
+        },
+    }
+
+    const dst = Rect.init(dst_x, dst_y, dst_width, dst_height);
+
+    _ = sdl2.SDL_SetTextureBlendMode(canvas.target, sdl2.SDL_BLENDMODE_BLEND);
+    // NOTE(error) ignoring error return.
+    _ = sdl2.SDL_SetTextureColorMod(canvas.sprites.texture, params.color.r, params.color.g, params.color.b);
+    // NOTE(error) ignoring error return.
+    _ = sdl2.SDL_SetTextureAlphaMod(canvas.sprites.texture, params.color.a);
+
+    // NOTE(error) ignoring error return.
+    _ = sdl2.SDL_RenderCopyEx(
+        canvas.renderer,
+        canvas.sprites.texture,
+        &Sdl2Rect(src_rect),
+        &Sdl2Rect(dst_rect),
+        params.sprite.rotation,
+        null,
+        flipFlags(&params.sprite),
+    );
 }
 
 pub fn processHighlightTile(canvas: Canvas, params: DrawHighlightTile) void {
