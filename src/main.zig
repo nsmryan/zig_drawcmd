@@ -161,6 +161,9 @@ const State = struct {
         const sprite_cmd = DrawCmd.sprite(spr, Color.init(255, 255, 255, 255), Pos.init(20, 20));
         drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &sprite_cmd);
 
+        const sprite_float_cmd = DrawCmd.sprite(spr, Color.init(255, 255, 255, 255), 20, 20, 2.0, 2.0);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &sprite_float_cmd);
+
         //var textTexture = try self.renderText("Hello, SDL2", makeColor(128, 128, 128, 128));
         //_ = sdl2.SDL_RenderCopyEx(self.renderer, textTexture, null, &sdl2.SDL_Rect{ .x = 10, .y = 10, .w = 100, .h = 50 }, 0.0, null, 0);
 

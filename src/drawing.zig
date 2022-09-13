@@ -11,6 +11,7 @@ const DrawCmd = drawcmd.DrawCmd;
 const DrawFill = drawcmd.DrawFill;
 const DrawRect = drawcmd.DrawRect;
 const DrawSprite = drawcmd.DrawSprite;
+const DrawSpriteScaled = drawcmd.DrawSpriteScaled;
 const DrawRectFloat = drawcmd.DrawRectFloat;
 const DrawOutlineTile = drawcmd.DrawOutlineTile;
 const DrawHighlightTile = drawcmd.DrawHighlightTile;
@@ -73,12 +74,12 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
 pub fn processSpriteScale(canvas: Canvas, params: DrawSpriteScaled) void {
     const cell_dims = params.panel.cellDims();
-    const sprite_sheet = &sprites[params.sprite.key];
+    const sprite_sheet = &canvas.sprites[params.sprite.key];
 
     const src_rect = sprite_sheet.sprite_src(sprite.index);
 
-    const dst_width = @floatToInt(u32, @intToFloat(f32, cell_dims.width) * scale);
-    const dst_height = @floatToInt(u32, @intToFloat(f32, cell_dims.height) * scale);
+    const dst_width = @floatToInt(u32, @intToFloat(f32, cell_dims.width) * params.scale);
+    const dst_height = @floatToInt(u32, @intToFloat(f32, cell_dims.height) * params.scale);
 
     const x_margin = @intCast(i32, (cell_dims.width - dst_width) / 2);
     const y_margin = @intCast(i32, (cell_dims.height - dst_height) / 2);
