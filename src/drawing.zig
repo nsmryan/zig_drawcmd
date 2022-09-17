@@ -96,16 +96,10 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 pub fn processTextGeneric(canvas: Canvas, text: [64]u8, len: usize, color: Color, pixel_pos: Pos, scale: f32) void {
     const ascii_width = utils.ASCII_END - utils.ASCII_START;
 
-    var format: u32 = undefined;
-    var access: c_int = undefined;
-    var w: c_int = undefined;
-    var h: c_int = undefined;
-    _ = sdl2.SDL_QueryTexture(canvas.ascii_texture.texture, &format, &access, &w, &h);
-
     const cell_dims = canvas.panel.cellDims();
 
-    const font_width = @intCast(usize, w) / ascii_width;
-    const font_height = @intCast(usize, h);
+    const font_width = @intCast(usize, canvas.ascii_texture.width) / ascii_width;
+    const font_height = @intCast(usize, canvas.ascii_texture.height);
 
     const char_height = @floatToInt(u32, @intToFloat(f32, cell_dims.height) * scale);
     const char_width_unscaled = (cell_dims.height * font_width) / font_height;
@@ -143,17 +137,7 @@ pub fn processTextGeneric(canvas: Canvas, text: [64]u8, len: usize, color: Color
 pub fn processTextFloat(canvas: Canvas, params: DrawTextFloat) void {
     const cell_dims = canvas.panel.cellDims();
 
-    var format: u32 = undefined;
-    var access: c_int = undefined;
-    var w: c_int = undefined;
-    var h: c_int = undefined;
-    _ = sdl2.SDL_QueryTexture(canvas.ascii_texture.texture, &format, &access, &w, &h);
-
-    const ascii_width = utils.ASCII_END - utils.ASCII_START;
-    const font_width = @intCast(usize, w) / ascii_width;
-    const font_height = @intCast(usize, h);
-
-    const char_width_unscaled = (cell_dims.height * font_width) / font_height;
+    const char_width_unscaled = (cell_dims.height * canvas.ascii_texture.char_width) / canvas.ascii_texture.char_height;
     const char_width = @floatToInt(u32, @intToFloat(f32, char_width_unscaled) * params.scale);
     const text_pixel_width = @intCast(i32, params.len) * @intCast(i32, char_width);
 
