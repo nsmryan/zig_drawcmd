@@ -26,8 +26,6 @@ const Color = utils.Color;
 
 const window_width: c_int = 800;
 const window_height: c_int = 600;
-const ASCII_START: usize = 32;
-const ASCII_END: usize = 127;
 
 const State = struct {
     window: *sdl2.SDL_Window,
@@ -88,7 +86,7 @@ const State = struct {
         var sheets = try sprite.parseAtlasFile("data/spriteAtlas.txt"[0..], allocator);
         var sprites = Sprites.init(sprite_texture, sheets);
 
-        const font = sdl2.TTF_OpenFont("data/Monoid.ttf", 20) orelse {
+        const font = sdl2.TTF_OpenFont("data/Inconsolata-Bold.ttf", 20) orelse {
             sdl2.SDL_Log("Unable to create font from tff: %s", sdl2.SDL_GetError());
             return error.SDLInitializationFailed;
         };
@@ -167,6 +165,12 @@ const State = struct {
 
         const sprite_float_cmd = DrawCmd.spriteFloat(spr, Color.init(255, 255, 255, 255), 15.0, 15.0, 2.0, 2.0);
         drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &sprite_float_cmd);
+
+        const text_cmd = DrawCmd.text("hello"[0..], Pos.init(8, 8), Color.init(0, 255, 0, 128), 1.0);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &text_cmd);
+
+        const text_float_cmd = DrawCmd.textFloat("hello"[0..], 9.5, 9.5, Color.init(0, 255, 0, 128), 1.0);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &text_float_cmd);
 
         sdl2.SDL_RenderPresent(self.renderer);
     }
@@ -252,9 +256,9 @@ pub fn renderAsciiCharacters(renderer: *Renderer, font: *Font) !*Texture {
     while (chr_index < 256) : (chr_index += 1) {
         chrs[chr_index] = @intCast(u8, chr_index);
     }
+    chrs[utils.ASCII_END + 1] = 0;
 
-    var ascii_chrs = chrs[ASCII_START..ASCII_END];
-    var text_surface = sdl2.TTF_RenderUTF8_Blended(font, ascii_chrs[0..], makeColor(255, 255, 255, 255));
+    var text_surface = sdl2.TTF_RenderUTF8_Blended(font, chrs[utils.ASCII_START..utils.ASCII_END], makeColor(255, 255, 255, 255));
     defer sdl2.SDL_FreeSurface(text_surface);
 
     var font_texture = sdl2.SDL_CreateTextureFromSurface(renderer, text_surface) orelse {

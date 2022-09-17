@@ -1,3 +1,6 @@
+pub const ASCII_START: usize = 32;
+pub const ASCII_END: usize = 127;
+
 pub const Rect = struct {
     x: i32,
     y: i32,

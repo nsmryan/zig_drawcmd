@@ -10,6 +10,8 @@ const drawcmd = @import("drawcmd.zig");
 const DrawCmd = drawcmd.DrawCmd;
 const DrawFill = drawcmd.DrawFill;
 const DrawRect = drawcmd.DrawRect;
+const DrawText = drawcmd.DrawText;
+const DrawTextFloat = drawcmd.DrawTextFloat;
 const DrawSprite = drawcmd.DrawSprite;
 const DrawSpriteScaled = drawcmd.DrawSpriteScaled;
 const DrawSpriteFloat = drawcmd.DrawSpriteFloat;
@@ -18,6 +20,7 @@ const DrawOutlineTile = drawcmd.DrawOutlineTile;
 const DrawHighlightTile = drawcmd.DrawHighlightTile;
 const utils = @import("utils.zig");
 const Rect = utils.Rect;
+const Color = utils.Color;
 const Pos = utils.Pos;
 const sprite = @import("sprite.zig");
 const Sprite = sprite.Sprite;
@@ -59,9 +62,9 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
         .outlineTile => |params| _ = processOutlineTile(canvas, params),
 
-        .text => |params| _ = params,
+        .text => |params| _ = processText(canvas, params),
 
-        .textFloat => |params| _ = params,
+        .textFloat => |params| _ = processTextFloat(canvas, params),
 
         .textJustify => |params| _ = params,
 
@@ -71,6 +74,84 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
         .fill => |params| processFillCmd(canvas, params),
     }
+}
+
+pub fn processTextGeneric(canvas: Canvas, text: [64]u8, len: usize, color: Color, pixel_pos: Pos, scale: f32) void {
+    const ascii_width = utils.ASCII_END - utils.ASCII_START;
+
+    var format: u32 = undefined;
+    var access: c_int = undefined;
+    var w: c_int = undefined;
+    var h: c_int = undefined;
+    _ = sdl2.SDL_QueryTexture(canvas.font_texture, &format, &access, &w, &h);
+
+    const cell_dims = canvas.panel.cellDims();
+
+    const font_width = @intCast(usize, w) / ascii_width;
+    const font_height = @intCast(usize, h);
+
+    const char_height = @floatToInt(u32, @intToFloat(f32, cell_dims.height) * scale);
+    const char_width_unscaled = (cell_dims.height * font_width) / font_height;
+    const char_width = @floatToInt(u32, @intToFloat(f32, char_width_unscaled) * scale);
+
+    _ = sdl2.SDL_SetTextureBlendMode(canvas.target, sdl2.SDL_BLENDMODE_BLEND);
+    _ = sdl2.SDL_SetTextureColorMod(canvas.sprites.texture, color.r, color.g, color.b);
+    _ = sdl2.SDL_SetTextureAlphaMod(canvas.sprites.texture, color.a);
+
+    const y_offset = pixel_pos.y;
+    var x_offset = pixel_pos.x;
+    for (text[0..len]) |chr| {
+        if (chr == 0) {
+            break;
+        }
+
+        const chr_num = std.ascii.toLower(chr);
+        const chr_index = @intCast(i32, chr_num) - @intCast(i32, utils.ASCII_START);
+
+        const src_rect = Rect.init(@intCast(i32, font_width) * chr_index, 0, @intCast(u32, font_width), @intCast(u32, font_height));
+
+        const dst_pos = Pos.init(x_offset, y_offset);
+        const dst_rect = Rect.init(
+            @intCast(i32, dst_pos.x),
+            @intCast(i32, dst_pos.y),
+            @intCast(u32, char_width),
+            @intCast(u32, char_height),
+        );
+
+        _ = sdl2.SDL_RenderCopyEx(canvas.renderer, canvas.font_texture, &Sdl2Rect(src_rect), &Sdl2Rect(dst_rect), 0.0, null, 0);
+        x_offset += @intCast(i32, char_width);
+    }
+}
+
+pub fn processTextFloat(canvas: Canvas, params: DrawTextFloat) void {
+    const cell_dims = canvas.panel.cellDims();
+
+    var format: u32 = undefined;
+    var access: c_int = undefined;
+    var w: c_int = undefined;
+    var h: c_int = undefined;
+    _ = sdl2.SDL_QueryTexture(canvas.font_texture, &format, &access, &w, &h);
+
+    const ascii_width = utils.ASCII_END - utils.ASCII_START;
+    const font_width = @intCast(usize, w) / ascii_width;
+    const font_height = @intCast(usize, h);
+
+    const char_width_unscaled = (cell_dims.height * font_width) / font_height;
+    const char_width = @floatToInt(u32, @intToFloat(f32, char_width_unscaled) * params.scale);
+    const text_pixel_width = @intCast(i32, params.len) * @intCast(i32, char_width);
+
+    const x_offset = @floatToInt(i32, params.x * @intToFloat(f32, cell_dims.width)) - @divFloor(text_pixel_width, 2);
+    const y_offset = @floatToInt(i32, params.y * @intToFloat(f32, cell_dims.height));
+    processTextGeneric(canvas, params.text, params.len, params.color, Pos.init(x_offset, y_offset), params.scale);
+}
+
+pub fn processText(canvas: Canvas, params: DrawText) void {
+    const cell_dims = canvas.panel.cellDims();
+
+    const x_offset = params.pos.x * @intCast(i32, cell_dims.width);
+    const y_offset = params.pos.y * @intCast(i32, cell_dims.height);
+
+    processTextGeneric(canvas, params.text, params.len, params.color, Pos.init(x_offset, y_offset), params.scale);
 }
 
 pub fn processSpriteFloat(canvas: Canvas, params: DrawSpriteFloat) void {
