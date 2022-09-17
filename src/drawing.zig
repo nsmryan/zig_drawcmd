@@ -33,10 +33,27 @@ pub const Canvas = struct {
     renderer: *Renderer,
     target: *Texture,
     sprites: *Sprites,
-    font_texture: *Texture,
+    ascii_texture: AsciiTexture,
 
-    pub fn init(panel: *Panel, renderer: *Renderer, target: *Texture, sprites: *Sprites, font_texture: *Texture) Canvas {
-        return Canvas{ .panel = panel, .renderer = renderer, .target = target, .sprites = sprites, .font_texture = font_texture };
+    pub fn init(panel: *Panel, renderer: *Renderer, target: *Texture, sprites: *Sprites, ascii_texture: AsciiTexture) Canvas {
+        return Canvas{ .panel = panel, .renderer = renderer, .target = target, .sprites = sprites, .ascii_texture = ascii_texture };
+    }
+};
+
+pub const AsciiTexture = struct {
+    texture: *Texture,
+    num_chars: usize,
+    width: u32,
+    height: u32,
+    char_width: u32,
+    char_height: u32,
+
+    pub fn init(texture: *Texture, num_chars: usize, width: u32, height: u32, char_width: u32, char_height: u32) AsciiTexture {
+        return AsciiTexture{ .texture = texture, .num_chars = num_chars, .width = width, .height = height, .char_width = char_width, .char_height = char_height };
+    }
+
+    pub fn deinit(self: *AsciiTexture) void {
+        sdl2.SDL_DestroyTexture(self.texture);
     }
 };
 
@@ -49,8 +66,8 @@ pub const Sprites = struct {
     }
 };
 
-pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, sprites: *Sprites, font_texture: *Texture, draw_cmd: *const DrawCmd) void {
-    var canvas = Canvas.init(panel, renderer, texture, sprites, font_texture);
+pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, sprites: *Sprites, ascii_texture: AsciiTexture, draw_cmd: *const DrawCmd) void {
+    var canvas = Canvas.init(panel, renderer, texture, sprites, ascii_texture);
     switch (draw_cmd.*) {
         .sprite => |params| processSpriteCmd(canvas, params),
 
@@ -83,7 +100,7 @@ pub fn processTextGeneric(canvas: Canvas, text: [64]u8, len: usize, color: Color
     var access: c_int = undefined;
     var w: c_int = undefined;
     var h: c_int = undefined;
-    _ = sdl2.SDL_QueryTexture(canvas.font_texture, &format, &access, &w, &h);
+    _ = sdl2.SDL_QueryTexture(canvas.ascii_texture.texture, &format, &access, &w, &h);
 
     const cell_dims = canvas.panel.cellDims();
 
@@ -118,7 +135,7 @@ pub fn processTextGeneric(canvas: Canvas, text: [64]u8, len: usize, color: Color
             @intCast(u32, char_height),
         );
 
-        _ = sdl2.SDL_RenderCopyEx(canvas.renderer, canvas.font_texture, &Sdl2Rect(src_rect), &Sdl2Rect(dst_rect), 0.0, null, 0);
+        _ = sdl2.SDL_RenderCopyEx(canvas.renderer, canvas.ascii_texture.texture, &Sdl2Rect(src_rect), &Sdl2Rect(dst_rect), 0.0, null, 0);
         x_offset += @intCast(i32, char_width);
     }
 }
@@ -130,7 +147,7 @@ pub fn processTextFloat(canvas: Canvas, params: DrawTextFloat) void {
     var access: c_int = undefined;
     var w: c_int = undefined;
     var h: c_int = undefined;
-    _ = sdl2.SDL_QueryTexture(canvas.font_texture, &format, &access, &w, &h);
+    _ = sdl2.SDL_QueryTexture(canvas.ascii_texture.texture, &format, &access, &w, &h);
 
     const ascii_width = utils.ASCII_END - utils.ASCII_START;
     const font_width = @intCast(usize, w) / ascii_width;

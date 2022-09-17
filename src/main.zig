@@ -31,7 +31,7 @@ const State = struct {
     window: *sdl2.SDL_Window,
     renderer: *Renderer,
     font: *Font,
-    font_texture: *Texture,
+    ascii_texture: drawing.AsciiTexture,
     screen_texture: *Texture,
     sprites: Sprites,
     panel: Panel,
@@ -91,7 +91,7 @@ const State = struct {
             return error.SDLInitializationFailed;
         };
 
-        const font_texture = try renderAsciiCharacters(renderer, font);
+        const ascii_texture = try renderAsciiCharacters(renderer, font);
 
         const num_pixels = Dims.init(window_width, window_height);
         const cell_dims = Dims.init(40, 30);
@@ -101,7 +101,7 @@ const State = struct {
             .window = window,
             .renderer = renderer,
             .font = font,
-            .font_texture = font_texture,
+            .ascii_texture = ascii_texture,
             .panel = screen_panel,
             .sprites = sprites,
             .screen_texture = screen_texture,
@@ -125,7 +125,7 @@ const State = struct {
     }
 
     fn deinit(self: *State) void {
-        sdl2.SDL_DestroyTexture(self.font_texture);
+        self.ascii_texture.deinit();
         sdl2.SDL_DestroyTexture(self.screen_texture);
         sdl2.TTF_CloseFont(self.font);
         sdl2.SDL_DestroyRenderer(self.renderer);
@@ -138,39 +138,39 @@ const State = struct {
         _ = sdl2.SDL_RenderClear(self.renderer);
 
         const fill_cmd = DrawCmd.fill(Pos.init(21, 20), Color.init(255, 0, 0, 255));
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &fill_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &fill_cmd);
 
         const rect_cmd = DrawCmd.rect(Pos.init(20, 20), 2, 2, 0.2, false, Color.init(0, 255, 0, 255));
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &rect_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &rect_cmd);
 
         const rect_float_cmd = DrawCmd.rectFloat(20, 20, 5, 5, false, Color.init(0, 255, 0, 255));
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &rect_float_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &rect_float_cmd);
 
         const outline_tile_cmd = DrawCmd.outlineTile(Pos.init(10, 10), Color.init(0, 255, 0, 255));
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &outline_tile_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &outline_tile_cmd);
 
         const outline_tile_cmd_2 = DrawCmd.outlineTile(Pos.init(11, 10), Color.init(0, 255, 0, 255));
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &outline_tile_cmd_2);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &outline_tile_cmd_2);
 
         const highlight_tile_cmd = DrawCmd.highlightTile(Pos.init(11, 11), Color.init(0, 255, 0, 128));
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &highlight_tile_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &highlight_tile_cmd);
 
         const sprite_key = try sprite.lookupSpritekey(&self.sprites.sheets, "player_standing_right"[0..]);
         const spr = sprite.Sprite.init(0, sprite_key);
         const sprite_cmd = DrawCmd.sprite(spr, Color.init(255, 255, 255, 255), Pos.init(20, 20));
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &sprite_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &sprite_cmd);
 
         const sprite_scaled_cmd = DrawCmd.spriteScaled(spr, 0.7, Direction.downRight, Color.init(255, 255, 255, 255), Pos.init(10, 10));
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &sprite_scaled_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &sprite_scaled_cmd);
 
         const sprite_float_cmd = DrawCmd.spriteFloat(spr, Color.init(255, 255, 255, 255), 15.0, 15.0, 2.0, 2.0);
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &sprite_float_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &sprite_float_cmd);
 
         const text_cmd = DrawCmd.text("hello"[0..], Pos.init(8, 8), Color.init(0, 255, 0, 128), 1.0);
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &text_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &text_cmd);
 
         const text_float_cmd = DrawCmd.textFloat("hello"[0..], 9.5, 9.5, Color.init(0, 255, 0, 128), 1.0);
-        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.font_texture, &text_float_cmd);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &text_float_cmd);
 
         sdl2.SDL_RenderPresent(self.renderer);
     }
@@ -248,7 +248,7 @@ const State = struct {
     }
 };
 
-pub fn renderAsciiCharacters(renderer: *Renderer, font: *Font) !*Texture {
+pub fn renderAsciiCharacters(renderer: *Renderer, font: *Font) !drawing.AsciiTexture {
     sdl2.TTF_SetFontStyle(font, sdl2.TTF_STYLE_BOLD);
 
     var chrs: [256]u8 = undefined;
@@ -266,7 +266,23 @@ pub fn renderAsciiCharacters(renderer: *Renderer, font: *Font) !*Texture {
         return error.SDLInitializationFailed;
     };
 
-    return font_texture;
+    var format: u32 = undefined;
+    var access: c_int = undefined;
+    var w: c_int = undefined;
+    var h: c_int = undefined;
+    _ = sdl2.SDL_QueryTexture(font_texture, &format, &access, &w, &h);
+
+    const ascii_width = utils.ASCII_END - utils.ASCII_START;
+    const ascii_texture = drawing.AsciiTexture.init(
+        font_texture,
+        ascii_width,
+        @intCast(u32, w),
+        @intCast(u32, h),
+        @divFloor(@intCast(u32, w), @intCast(u32, ascii_width)),
+        @intCast(u32, h),
+    );
+
+    return ascii_texture;
 }
 
 pub fn makeColor(r: u8, g: u8, b: u8, a: u8) sdl2.SDL_Color {
