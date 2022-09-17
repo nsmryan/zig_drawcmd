@@ -9,17 +9,6 @@ const Font = sdl2.TTF_Font;
 
 const drawcmd = @import("drawcmd.zig");
 const DrawCmd = drawcmd.DrawCmd;
-const DrawFill = drawcmd.DrawFill;
-const DrawRect = drawcmd.DrawRect;
-const DrawText = drawcmd.DrawText;
-const DrawTextFloat = drawcmd.DrawTextFloat;
-const DrawTextJustify = drawcmd.DrawTextJustify;
-const DrawSprite = drawcmd.DrawSprite;
-const DrawSpriteScaled = drawcmd.DrawSpriteScaled;
-const DrawSpriteFloat = drawcmd.DrawSpriteFloat;
-const DrawRectFloat = drawcmd.DrawRectFloat;
-const DrawOutlineTile = drawcmd.DrawOutlineTile;
-const DrawHighlightTile = drawcmd.DrawHighlightTile;
 const utils = @import("utils.zig");
 const Rect = utils.Rect;
 const Color = utils.Color;
@@ -173,7 +162,7 @@ pub fn processTextGeneric(canvas: Canvas, text: [64]u8, len: usize, color: Color
     }
 }
 
-pub fn processTextJustify(canvas: Canvas, params: DrawTextJustify) void {
+pub fn processTextJustify(canvas: Canvas, params: drawcmd.DrawTextJustify) void {
     const cell_dims = canvas.panel.cellDims();
 
     const char_width_unscaled = (cell_dims.height * canvas.ascii_texture.char_width) / canvas.ascii_texture.char_height;
@@ -213,7 +202,7 @@ pub fn processTextJustify(canvas: Canvas, params: DrawTextJustify) void {
     processTextGeneric(canvas, params.text, params.len, params.color, Pos.init(x_offset, y_offset), params.scale);
 }
 
-pub fn processTextFloat(canvas: Canvas, params: DrawTextFloat) void {
+pub fn processTextFloat(canvas: Canvas, params: drawcmd.DrawTextFloat) void {
     const cell_dims = canvas.panel.cellDims();
 
     const char_width_unscaled = (cell_dims.height * canvas.ascii_texture.char_width) / canvas.ascii_texture.char_height;
@@ -225,7 +214,7 @@ pub fn processTextFloat(canvas: Canvas, params: DrawTextFloat) void {
     processTextGeneric(canvas, params.text, params.len, params.color, Pos.init(x_offset, y_offset), params.scale);
 }
 
-pub fn processText(canvas: Canvas, params: DrawText) void {
+pub fn processText(canvas: Canvas, params: drawcmd.DrawText) void {
     const cell_dims = canvas.panel.cellDims();
 
     const x_offset = params.pos.x * @intCast(i32, cell_dims.width);
@@ -234,7 +223,7 @@ pub fn processText(canvas: Canvas, params: DrawText) void {
     processTextGeneric(canvas, params.text, params.len, params.color, Pos.init(x_offset, y_offset), params.scale);
 }
 
-pub fn processSpriteFloat(canvas: Canvas, params: DrawSpriteFloat) void {
+pub fn processSpriteFloat(canvas: Canvas, params: drawcmd.DrawSpriteFloat) void {
     const sprite_sheet = &canvas.sprites.sheets.items[params.sprite.key];
 
     const cell_dims = canvas.panel.cellDims();
@@ -268,7 +257,7 @@ pub fn processSpriteFloat(canvas: Canvas, params: DrawSpriteFloat) void {
     );
 }
 
-pub fn processSpriteScale(canvas: Canvas, params: DrawSpriteScaled) void {
+pub fn processSpriteScale(canvas: Canvas, params: drawcmd.DrawSpriteScaled) void {
     const cell_dims = canvas.panel.cellDims();
     const sprite_sheet = &canvas.sprites.sheets.items[params.sprite.key];
 
@@ -345,7 +334,7 @@ pub fn processSpriteScale(canvas: Canvas, params: DrawSpriteScaled) void {
     );
 }
 
-pub fn processHighlightTile(canvas: Canvas, params: DrawHighlightTile) void {
+pub fn processHighlightTile(canvas: Canvas, params: drawcmd.DrawHighlightTile) void {
     const cell_dims = canvas.panel.cellDims();
 
     _ = sdl2.SDL_SetRenderDrawBlendMode(canvas.renderer, sdl2.SDL_BLENDMODE_BLEND);
@@ -361,7 +350,7 @@ pub fn processHighlightTile(canvas: Canvas, params: DrawHighlightTile) void {
     _ = sdl2.SDL_RenderFillRect(canvas.renderer, &Sdl2Rect(rect));
 }
 
-pub fn processOutlineTile(canvas: Canvas, params: DrawOutlineTile) void {
+pub fn processOutlineTile(canvas: Canvas, params: drawcmd.DrawOutlineTile) void {
     const cell_dims = canvas.panel.cellDims();
 
     _ = sdl2.SDL_SetRenderDrawBlendMode(canvas.renderer, sdl2.SDL_BLENDMODE_BLEND);
@@ -377,7 +366,7 @@ pub fn processOutlineTile(canvas: Canvas, params: DrawOutlineTile) void {
     _ = sdl2.SDL_RenderDrawRect(canvas.renderer, &Sdl2Rect(rect));
 }
 
-pub fn processFillCmd(canvas: Canvas, params: DrawFill) void {
+pub fn processFillCmd(canvas: Canvas, params: drawcmd.DrawFill) void {
     const cell_dims = canvas.panel.cellDims();
     _ = sdl2.SDL_SetRenderDrawColor(canvas.renderer, params.color.r, params.color.g, params.color.b, params.color.a);
     var src_rect = Rect{ .x = params.pos.x * @intCast(i32, cell_dims.width), .y = params.pos.y * @intCast(i32, cell_dims.height), .w = @intCast(u32, cell_dims.width), .h = @intCast(u32, cell_dims.height) };
@@ -385,7 +374,7 @@ pub fn processFillCmd(canvas: Canvas, params: DrawFill) void {
     _ = sdl2.SDL_RenderFillRect(canvas.renderer, &sdl2_rect);
 }
 
-pub fn processRectCmd(canvas: Canvas, params: DrawRect) void {
+pub fn processRectCmd(canvas: Canvas, params: drawcmd.DrawRect) void {
     assert(params.offset_percent < 1.0);
 
     const cell_dims = canvas.panel.cellDims();
@@ -413,7 +402,7 @@ pub fn processRectCmd(canvas: Canvas, params: DrawRect) void {
     }
 }
 
-pub fn processRectFloatCmd(canvas: Canvas, params: DrawRectFloat) void {
+pub fn processRectFloatCmd(canvas: Canvas, params: drawcmd.DrawRectFloat) void {
     const cell_dims = canvas.panel.cellDims();
 
     _ = sdl2.SDL_SetRenderDrawColor(canvas.renderer, params.color.r, params.color.g, params.color.b, params.color.a);
@@ -435,7 +424,7 @@ pub fn processRectFloatCmd(canvas: Canvas, params: DrawRectFloat) void {
     }
 }
 
-pub fn processSpriteCmd(canvas: Canvas, params: DrawSprite) void {
+pub fn processSpriteCmd(canvas: Canvas, params: drawcmd.DrawSprite) void {
     const sprite_sheet = &canvas.sprites.sheets.items[params.sprite.key];
     const cell_dims = canvas.panel.cellDims();
 
