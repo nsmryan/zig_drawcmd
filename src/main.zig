@@ -172,6 +172,15 @@ const State = struct {
         const text_float_cmd = DrawCmd.textFloat("hello"[0..], 9.5, 9.5, Color.init(0, 255, 0, 128), 1.0);
         drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &text_float_cmd);
 
+        const text_justify_center_cmd = DrawCmd.textJustify("center"[0..], drawcmd.Justify.center, Pos.init(0, 0), Color.init(0, 255, 0, 128), 40, 1.0);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &text_justify_center_cmd);
+
+        const text_justify_left_cmd = DrawCmd.textJustify("left"[0..], drawcmd.Justify.left, Pos.init(0, 0), Color.init(0, 255, 0, 128), 40, 1.0);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &text_justify_left_cmd);
+
+        const text_justify_right_cmd = DrawCmd.textJustify("right"[0..], drawcmd.Justify.right, Pos.init(0, 0), Color.init(0, 255, 0, 128), 40, 1.0);
+        drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &text_justify_right_cmd);
+
         sdl2.SDL_RenderPresent(self.renderer);
     }
 

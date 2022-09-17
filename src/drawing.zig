@@ -12,6 +12,7 @@ const DrawFill = drawcmd.DrawFill;
 const DrawRect = drawcmd.DrawRect;
 const DrawText = drawcmd.DrawText;
 const DrawTextFloat = drawcmd.DrawTextFloat;
+const DrawTextJustify = drawcmd.DrawTextJustify;
 const DrawSprite = drawcmd.DrawSprite;
 const DrawSpriteScaled = drawcmd.DrawSpriteScaled;
 const DrawSpriteFloat = drawcmd.DrawSpriteFloat;
@@ -83,7 +84,7 @@ pub fn processDrawCmd(panel: *Panel, renderer: *Renderer, texture: *Texture, spr
 
         .textFloat => |params| _ = processTextFloat(canvas, params),
 
-        .textJustify => |params| _ = params,
+        .textJustify => |params| _ = processTextJustify(canvas, params),
 
         .rect => |params| _ = processRectCmd(canvas, params),
 
@@ -132,6 +133,46 @@ pub fn processTextGeneric(canvas: Canvas, text: [64]u8, len: usize, color: Color
         _ = sdl2.SDL_RenderCopyEx(canvas.renderer, canvas.ascii_texture.texture, &Sdl2Rect(src_rect), &Sdl2Rect(dst_rect), 0.0, null, 0);
         x_offset += @intCast(i32, char_width);
     }
+}
+
+pub fn processTextJustify(canvas: Canvas, params: DrawTextJustify) void {
+    const cell_dims = canvas.panel.cellDims();
+
+    const char_width_unscaled = (cell_dims.height * canvas.ascii_texture.char_width) / canvas.ascii_texture.char_height;
+    const char_width = @floatToInt(u32, @intToFloat(f32, char_width_unscaled) * params.scale);
+
+    const pixel_width = @intCast(i32, params.width * cell_dims.width);
+
+    var x_offset: i32 = undefined;
+    switch (params.justify) {
+        .right => {
+            x_offset = (params.pos.x * @intCast(i32, cell_dims.width)) + pixel_width - @intCast(i32, char_width) * @intCast(i32, params.len);
+        },
+
+        .center => {
+            x_offset = @divFloor(((params.pos.x * @intCast(i32, cell_dims.width)) + pixel_width), 2) - @divFloor((@intCast(i32, char_width) * @intCast(i32, params.len)), 2);
+        },
+
+        .left => {
+            x_offset = params.pos.x * @intCast(i32, cell_dims.width);
+        },
+    }
+
+    const y_offset = params.pos.y * @intCast(i32, cell_dims.height);
+
+    // From original Rust code- draw black background around text.
+    //canvas.set_blend_mode(BlendMode::Blend);
+    //canvas.set_draw_color(sdl2::pixels::Color::BLACK);
+    //canvas.fill_rect(Rect::new(x_offset, y_offset, string.len() as u32 * char_width, char_height)).unwrap();
+
+    //canvas.set_blend_mode(BlendMode::Blend);
+    //canvas.set_draw_color(sdl2_color(*bg_color));
+    //canvas.fill_rect(Rect::new(x_offset, y_offset, string.len() as u32 * char_width, char_height)).unwrap();
+
+    //font_texture.set_color_mod(fg_color.r, fg_color.g, fg_color.b);
+    //font_texture.set_alpha_mod(fg_color.a);
+
+    processTextGeneric(canvas, params.text, params.len, params.color, Pos.init(x_offset, y_offset), params.scale);
 }
 
 pub fn processTextFloat(canvas: Canvas, params: DrawTextFloat) void {
