@@ -5,6 +5,7 @@ const assert = std.debug.assert;
 const sdl2 = @import("sdl2.zig");
 const Texture = sdl2.SDL_Texture;
 const Renderer = sdl2.SDL_Renderer;
+const Font = sdl2.TTF_Font;
 
 const drawcmd = @import("drawcmd.zig");
 const DrawCmd = drawcmd.DrawCmd;
@@ -55,6 +56,43 @@ pub const AsciiTexture = struct {
 
     pub fn deinit(self: *AsciiTexture) void {
         sdl2.SDL_DestroyTexture(self.texture);
+    }
+
+    pub fn renderAsciiCharacters(renderer: *Renderer, font: *Font) !AsciiTexture {
+        sdl2.TTF_SetFontStyle(font, sdl2.TTF_STYLE_BOLD);
+
+        var chrs: [256]u8 = undefined;
+        var chr_index: usize = 0;
+        while (chr_index < 256) : (chr_index += 1) {
+            chrs[chr_index] = @intCast(u8, chr_index);
+        }
+        chrs[utils.ASCII_END + 1] = 0;
+
+        var text_surface = sdl2.TTF_RenderUTF8_Blended(font, chrs[utils.ASCII_START..utils.ASCII_END], makeColor(255, 255, 255, 255));
+        defer sdl2.SDL_FreeSurface(text_surface);
+
+        var font_texture = sdl2.SDL_CreateTextureFromSurface(renderer, text_surface) orelse {
+            sdl2.SDL_Log("Unable to create sprite texture: %s", sdl2.SDL_GetError());
+            return error.SDLInitializationFailed;
+        };
+
+        var format: u32 = undefined;
+        var access: c_int = undefined;
+        var w: c_int = undefined;
+        var h: c_int = undefined;
+        _ = sdl2.SDL_QueryTexture(font_texture, &format, &access, &w, &h);
+
+        const ascii_width = utils.ASCII_END - utils.ASCII_START;
+        const ascii_texture = AsciiTexture.init(
+            font_texture,
+            ascii_width,
+            @intCast(u32, w),
+            @intCast(u32, h),
+            @divFloor(@intCast(u32, w), @intCast(u32, ascii_width)),
+            @intCast(u32, h),
+        );
+
+        return ascii_texture;
     }
 };
 
@@ -444,4 +482,8 @@ pub fn Sdl2Color(color: utils.Color) sdl2.SDL_Color {
 
 pub fn Sdl2Rect(rect: Rect) sdl2.SDL_Rect {
     return sdl2.SDL_Rect{ .x = rect.x, .y = rect.y, .w = @intCast(c_int, rect.w), .h = @intCast(c_int, rect.h) };
+}
+
+pub fn makeColor(r: u8, g: u8, b: u8, a: u8) sdl2.SDL_Color {
+    return sdl2.SDL_Color{ .r = r, .g = g, .b = b, .a = a };
 }

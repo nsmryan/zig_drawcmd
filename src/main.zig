@@ -91,7 +91,7 @@ const State = struct {
             return error.SDLInitializationFailed;
         };
 
-        const ascii_texture = try renderAsciiCharacters(renderer, font);
+        const ascii_texture = try drawing.AsciiTexture.renderAsciiCharacters(renderer, font);
 
         const num_pixels = Dims.init(window_width, window_height);
         const cell_dims = Dims.init(40, 30);
@@ -256,47 +256,6 @@ const State = struct {
         return quit;
     }
 };
-
-pub fn renderAsciiCharacters(renderer: *Renderer, font: *Font) !drawing.AsciiTexture {
-    sdl2.TTF_SetFontStyle(font, sdl2.TTF_STYLE_BOLD);
-
-    var chrs: [256]u8 = undefined;
-    var chr_index: usize = 0;
-    while (chr_index < 256) : (chr_index += 1) {
-        chrs[chr_index] = @intCast(u8, chr_index);
-    }
-    chrs[utils.ASCII_END + 1] = 0;
-
-    var text_surface = sdl2.TTF_RenderUTF8_Blended(font, chrs[utils.ASCII_START..utils.ASCII_END], makeColor(255, 255, 255, 255));
-    defer sdl2.SDL_FreeSurface(text_surface);
-
-    var font_texture = sdl2.SDL_CreateTextureFromSurface(renderer, text_surface) orelse {
-        sdl2.SDL_Log("Unable to create sprite texture: %s", sdl2.SDL_GetError());
-        return error.SDLInitializationFailed;
-    };
-
-    var format: u32 = undefined;
-    var access: c_int = undefined;
-    var w: c_int = undefined;
-    var h: c_int = undefined;
-    _ = sdl2.SDL_QueryTexture(font_texture, &format, &access, &w, &h);
-
-    const ascii_width = utils.ASCII_END - utils.ASCII_START;
-    const ascii_texture = drawing.AsciiTexture.init(
-        font_texture,
-        ascii_width,
-        @intCast(u32, w),
-        @intCast(u32, h),
-        @divFloor(@intCast(u32, w), @intCast(u32, ascii_width)),
-        @intCast(u32, h),
-    );
-
-    return ascii_texture;
-}
-
-pub fn makeColor(r: u8, g: u8, b: u8, a: u8) sdl2.SDL_Color {
-    return sdl2.SDL_Color{ .r = r, .g = g, .b = b, .a = a };
-}
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
