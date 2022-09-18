@@ -38,19 +38,23 @@ pub const DrawCmd = union(enum) {
     fill: DrawFill,
 
     pub fn aligned(self: *DrawCmd) bool {
-        return self != .SpriteFloat and self != .TextFloat;
+        return self.* != .spriteFloat and self.* != .textFloat;
     }
 
     // NOTE(zig) I would be surprised if this worked. Instead, maybe dispatch on type and use "@field"?
     pub fn pos(self: *DrawCmd) Pos {
-        switch (self) {
-            .sprite, .spriteScaled, .highlightTile, .outlineTile, .text, .textJustify, .rect, .fill => |draw_cmd| {
-                return draw_cmd.pos;
-            },
-
-            .spriteFloat, .textFloat, .rectFloat => |draw_cmd| {
-                Pos.init(draw_cmd.x, draw_cmd.y);
-            },
+        switch (self.*) {
+            .sprite => |draw_cmd| return draw_cmd.pos,
+            .spriteScaled => |draw_cmd| return draw_cmd.pos,
+            .highlightTile => |draw_cmd| return draw_cmd.pos,
+            .outlineTile => |draw_cmd| return draw_cmd.pos,
+            .text => |draw_cmd| return draw_cmd.pos,
+            .textJustify => |draw_cmd| return draw_cmd.pos,
+            .rect => |draw_cmd| return draw_cmd.pos,
+            .fill => |draw_cmd| return draw_cmd.pos,
+            .spriteFloat => |draw_cmd| return Pos.init(@floatToInt(i32, draw_cmd.x), @floatToInt(i32, draw_cmd.y)),
+            .textFloat => |draw_cmd| return Pos.init(@floatToInt(i32, draw_cmd.x), @floatToInt(i32, draw_cmd.y)),
+            .rectFloat => |draw_cmd| return Pos.init(@floatToInt(i32, draw_cmd.x), @floatToInt(i32, draw_cmd.y)),
         }
     }
 

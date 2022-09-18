@@ -25,7 +25,7 @@ pub const Sprite = struct {
     }
 
     pub fn fromKey(key: SpriteKey) Sprite {
-        Sprite.init(0, key);
+        return Sprite.init(0, key);
     }
 
     pub fn withFlip(index: SpriteIndex, key: SpriteKey, flip_horiz: bool, flip_vert: bool) Sprite {

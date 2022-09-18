@@ -1,4 +1,5 @@
 const std = @import("std");
+const ArrayList = std.ArrayList;
 const assert = std.debug.assert;
 const mem = std.mem;
 const fs = std.fs;
@@ -8,6 +9,7 @@ const sdl2 = @import("sdl2.zig");
 const Texture = sdl2.SDL_Texture;
 const Renderer = sdl2.SDL_Renderer;
 const Font = sdl2.TTF_Font;
+const Window = sdl2.SDL_Window;
 
 const drawcmd = @import("drawcmd.zig");
 const DrawCmd = drawcmd.DrawCmd;
@@ -25,7 +27,7 @@ const Pos = utils.Pos;
 const Color = utils.Color;
 
 pub const State = struct {
-    window: *sdl2.SDL_Window,
+    window: *Window,
     renderer: *Renderer,
     font: *Font,
     ascii_texture: drawing.AsciiTexture,
@@ -33,7 +35,16 @@ pub const State = struct {
     sprites: Sprites,
     panel: Panel,
 
-    pub fn init(window_width: c_int, window_height: c_int, allocator: Allocator) !State {
+    drawcmds: ArrayList(DrawCmd),
+    arena: std.heap.ArenaAllocator,
+
+    pub fn init(window_width: c_int, window_height: c_int) !State {
+        // Create the allocator internally for a simpler TCL interface.
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        var allocator = arena.allocator();
+
+        var drawcmds = ArrayList(DrawCmd).init(allocator);
+
         if (sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO) != 0) {
             sdl2.SDL_Log("Unable to initialize SDL: %s", sdl2.SDL_GetError());
             return error.SDLInitializationFailed;
@@ -102,8 +113,36 @@ pub const State = struct {
             .panel = screen_panel,
             .sprites = sprites,
             .screen_texture = screen_texture,
+            .drawcmds = drawcmds,
+            .arena = arena,
         };
         return game;
+    }
+
+    pub fn push(self: *State, cmd: DrawCmd) !void {
+        std.debug.print("state {}\n", .{self});
+        std.debug.print("push {}\n", .{cmd});
+        try self.drawcmds.append(cmd);
+        std.debug.print("pushed\n", .{});
+    }
+
+    pub fn present(self: *State) void {
+        std.debug.print("clear\n", .{});
+        _ = sdl2.SDL_SetRenderDrawColor(self.renderer, 0, 0, 0, sdl2.SDL_ALPHA_OPAQUE);
+        _ = sdl2.SDL_RenderClear(self.renderer);
+
+        std.debug.print("cmds\n", .{});
+        for (self.drawcmds.items) |cmd| {
+            drawing.processDrawCmd(&self.panel, self.renderer, self.screen_texture, &self.sprites, self.ascii_texture, &cmd);
+        }
+
+        std.debug.print("present\n", .{});
+        sdl2.SDL_RenderPresent(self.renderer);
+
+        std.debug.print("remove\n", .{});
+        self.drawcmds.clearRetainingCapacity();
+
+        std.debug.print("done\n", .{});
     }
 
     //fn renderText(self: *State, text: []const u8, color: sdl2.SDL_Color) !*Texture {
@@ -128,6 +167,7 @@ pub const State = struct {
         sdl2.SDL_DestroyRenderer(self.renderer);
         sdl2.SDL_DestroyWindow(self.window);
         sdl2.SDL_Quit();
+        self.arena.deinit();
     }
 
     pub fn render(self: *State) !void {
