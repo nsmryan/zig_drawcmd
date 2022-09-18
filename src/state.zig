@@ -292,4 +292,13 @@ pub const State = struct {
 
         return quit;
     }
+
+    pub fn lookupSpritekey(self: *State, name: []const u8) !sprite.SpriteKey {
+        return sprite.lookupSpritekey(&self.sprites.sheets, name);
+    }
+
+    pub fn numSprites(self: *State, name: []const u8) !usize {
+        const key = try sprite.lookupSpritekey(&self.sprites.sheets, name);
+        return self.sprites.sheets.items[key].num_sprites;
+    }
 };
